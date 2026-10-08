@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Role;
-use App\Models\User;
+use App\Models\Rol;
+use App\Models\Usuario;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -18,46 +18,46 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // 1. Roles
-        $superadminRole = Role::firstOrCreate(
-            ['name' => 'superadmin'],
+        $rolAdministrador = Rol::firstOrCreate(
+            ['nombre' => 'admin'],
             [
-                'display_name' => 'Super Administrador',
-                'description' => 'Acceso y control total de todos los módulos'
+                'nombre_visible' => 'Administrador',
+                'descripcion' => 'Acceso y control total de todos los módulos'
             ]
         );
 
-        $vendedorRole = Role::firstOrCreate(
-            ['name' => 'vendedor'],
+        $rolVendedor = Rol::firstOrCreate(
+            ['nombre' => 'vendedor'],
             [
-                'display_name' => 'Vendedor',
-                'description' => 'Acceso exclusivo al módulo de Ventas (POS)'
+                'nombre_visible' => 'Vendedor',
+                'descripcion' => 'Acceso exclusivo al módulo de Ventas (POS)'
             ]
         );
 
-        // 2. Usuario Superadmin
-        $superadmin = User::updateOrCreate(
-            ['email' => 'superadmin@posventa.com'],
+        // 2. Usuario administrador
+        $administrador = Usuario::updateOrCreate(
+            ['email' => 'admin@posventa.com'],
             [
-                'name' => 'Super Administrador',
+                'name' => 'Administrador',
                 'password' => Hash::make('password'),
             ]
         );
-        $superadmin->roles()->sync([$superadminRole->id]);
+        $administrador->roles()->sync([$rolAdministrador->id]);
 
-        // También le asignamos superadmin al usuario inicial de prueba test@example.com
-        $testUser = User::where('email', 'test@example.com')->first();
-        if ($testUser) {
-            $testUser->roles()->sync([$superadminRole->id]);
+        // También asignamos el rol administrador al usuario inicial de prueba.
+        $usuarioPrueba = Usuario::where('email', 'test@example.com')->first();
+        if ($usuarioPrueba) {
+            $usuarioPrueba->roles()->sync([$rolAdministrador->id]);
         }
 
         // 3. Usuario Vendedor (solo acceso al módulo de ventas)
-        $vendedor = User::updateOrCreate(
+        $vendedor = Usuario::updateOrCreate(
             ['email' => 'vendedor@posventa.com'],
             [
                 'name' => 'Carlos Vendedor',
                 'password' => Hash::make('password'),
             ]
         );
-        $vendedor->roles()->sync([$vendedorRole->id]);
+        $vendedor->roles()->sync([$rolVendedor->id]);
     }
 }

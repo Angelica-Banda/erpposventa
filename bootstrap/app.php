@@ -17,7 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'role' => \App\Http\Middleware\CheckRole::class,
+            'rol' => \App\Http\Middleware\VerificarRol::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

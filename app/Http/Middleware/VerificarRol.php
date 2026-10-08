@@ -6,7 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class CheckRole
+class VerificarRol
 {
     /**
      * Handle an incoming request.
@@ -20,8 +20,8 @@ class CheckRole
             return redirect()->route('login');
         }
 
-        // Superadmin siempre tiene acceso a cualquier módulo
-        if ($request->user()->hasRole('superadmin')) {
+        // admin siempre tiene acceso a cualquier módulo
+        if ($request->user()->tieneRol('admin')) {
             return $next($request);
         }
 
@@ -29,9 +29,9 @@ class CheckRole
             return $next($request);
         }
 
-        if (! $request->user()->hasRole($roles)) {
+        if (! $request->user()->tieneRol($roles)) {
             // Si es vendedor y no tiene permiso para este módulo, redirigir a ventas
-            if ($request->user()->hasRole('vendedor')) {
+            if ($request->user()->tieneRol('vendedor')) {
                 return redirect()->route('ventas.index');
             }
 

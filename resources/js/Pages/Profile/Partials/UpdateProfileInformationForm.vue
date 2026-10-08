@@ -14,11 +14,11 @@ defineProps({
     },
 });
 
-const user = usePage().props.auth.user;
+const usuario = usePage().props.auth.usuario;
 
 const form = useForm({
-    name: user.name,
-    email: user.email,
+    name: usuario.name,
+    email: usuario.email,
 });
 </script>
 
@@ -69,7 +69,7 @@ const form = useForm({
                 <InputError class="mt-2" :message="form.errors.email" />
             </div>
 
-            <div v-if="mustVerifyEmail && user.email_verified_at === null">
+            <div v-if="mustVerifyEmail && usuario.email_verified_at === null">
                 <p class="mt-2 text-sm text-gray-800">
                     Your email address is unverified.
                     <Link

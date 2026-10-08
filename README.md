@@ -95,7 +95,7 @@ DB_PASSWORD=
 Si la base de datos no existe, créala desde tu gestor de base de datos preferido (phpMyAdmin, DBeaver, HeidiSQL o MySQL CLI):
 
 ```sql
-CREATE DATABASE postventaerp CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE sistema_pos_erp CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
 ---
@@ -109,7 +109,7 @@ php artisan key:generate
 ---
 
 ### 7. Ejecutar Migraciones y Datos de Prueba (Seeders)
-Crea las tablas en la base de datos (`users`, `roles`, `role_users`, etc.) y registra los roles y usuarios iniciales:
+Crea las tablas en la base de datos (`usuarios`, `roles`, `roles_usuarios`, etc.) y registra los roles y usuarios iniciales:
 ```bash
 php artisan migrate --seed
 ```
@@ -149,11 +149,9 @@ El seeder inicial genera automáticamente los roles y las siguientes cuentas de 
 
 | Rol | Nombre | Correo Electrónico | Contraseña | Permisos y Acceso |
 | :--- | :--- | :--- | :--- | :--- |
-| **Superadmin** | Super Administrador | `superadmin@posventa.com` | `password` | **Acceso total**: Dashboard principal, POS Ventas, Inventario, Domicilios, Reportes y Módulo de Configuraciones. |
-| **Superadmin** | Administrador | `test@example.com` | `password` | Usuario inicial alternativo con acceso total. |
+| **Administrador (`admin`)** | Administrador | `admin@posventa.com` | `password` | **Acceso total**: Panel principal, POS Ventas, Inventario, Domicilios, Reportes y Módulo de Configuraciones. |
+| **Administrador (`admin`)** | Administrador | `test@example.com` | `password` | Usuario inicial alternativo con acceso total. |
 | **Vendedor** | Carlos Vendedor | `vendedor@posventa.com` | `password` | **Acceso exclusivo**: Ingresa directamente al Módulo de Ventas (POS). Restringido de dashboards y configuraciones. |
-
----
 
 ## 🧭 Estructura de Módulos del Sistema
 
@@ -172,8 +170,8 @@ El seeder inicial genera automáticamente los roles y las siguientes cuentas de 
    - Procesamiento de cobros y tickets.
 
 4. **Módulo de Configuraciones (`/configuracion/roles-usuarios`)**:
-   - Desplegable en el menú lateral para usuarios `superadmin`.
-   - CRUD completo: Crear nuevos usuarios, editar nombres/correos/contraseñas y asignar o remover roles del sistema mediante la tabla pivote `role_users`.
+   - Desplegable en el menú lateral para usuarios con el rol `admin`.
+   - CRUD completo: Crear nuevos usuarios, editar nombres/correos/contraseñas y asignar o remover roles del sistema mediante la tabla pivote `roles_usuarios`.
    - Protección contra auto-eliminación de cuenta activa.
 
 ---

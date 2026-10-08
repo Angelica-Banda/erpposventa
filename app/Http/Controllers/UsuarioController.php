@@ -2,40 +2,40 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Role;
-use App\Models\User;
+use App\Models\Rol;
+use App\Models\Usuario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class UserController extends Controller
+class UsuarioController extends Controller
 {
     /**
-     * Display users list with their assigned roles.
+     * Muestra los usuarios con sus roles asignados.
      */
     public function index(): Response
     {
-        $users = User::with('roles')->latest()->get()->map(function ($user) {
+        $usuarios = Usuario::with('roles')->latest()->get()->map(function ($usuario) {
             return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'created_at' => $user->created_at ? $user->created_at->format('d/m/Y') : '',
-                'roles' => $user->roles->map(fn ($r) => [
-                    'id' => $r->id,
-                    'name' => $r->name,
-                    'display_name' => $r->display_name,
+                'id' => $usuario->id,
+                'name' => $usuario->name,
+                'email' => $usuario->email,
+                'created_at' => $usuario->created_at ? $usuario->created_at->format('d/m/Y') : '',
+                'roles' => $usuario->roles->map(fn (Rol $rol) => [
+                    'id' => $rol->id,
+                    'nombre' => $rol->nombre,
+                    'nombre_visible' => $rol->nombre_visible,
                 ]),
-                'role_ids' => $user->roles->pluck('id')->toArray(),
+                'ids_roles' => $usuario->roles->pluck('id')->toArray(),
             ];
         });
 
-        $roles = Role::all(['id', 'name', 'display_name', 'description']);
+        $roles = Rol::all(['id', 'nombre', 'nombre_visible', 'descripcion']);
 
         return Inertia::render('Configuracion/UsuariosRoles', [
-            'users' => $users,
+            'usuarios' => $usuarios,
             'roles' => $roles,
             'flash' => [
                 'success' => session('success'),
@@ -45,13 +45,13 @@ class UserController extends Controller
     }
 
     /**
-     * Store a newly created user with assigned roles.
+     * Registra un usuario y le asigna sus roles.
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email',
+            'email' => 'required|string|email|max:255|unique:usuarios,email',
             'password' => 'required|string|min:6',
             'roles' => 'required|array|min:1',
             'roles.*' => 'exists:roles,id',
@@ -60,25 +60,25 @@ class UserController extends Controller
             'roles.min' => 'Debes asignar al menos un rol al usuario.',
         ]);
 
-        $user = User::create([
+        $usuario = Usuario::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
         ]);
 
-        $user->roles()->sync($validated['roles']);
+        $usuario->roles()->sync($validated['roles']);
 
         return redirect()->back()->with('success', 'Usuario creado y roles asignados exitosamente.');
     }
 
     /**
-     * Update user details and synchronize roles.
+     * Actualiza los datos del usuario y sincroniza sus roles.
      */
-    public function update(Request $request, User $user)
+    public function update(Request $request, Usuario $usuario)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('usuarios')->ignore($usuario->id)],
             'password' => 'nullable|string|min:6',
             'roles' => 'required|array|min:1',
             'roles.*' => 'exists:roles,id',
@@ -87,32 +87,32 @@ class UserController extends Controller
             'roles.min' => 'Debes asignar al menos un rol al usuario.',
         ]);
 
-        $userData = [
+        $datosUsuario = [
             'name' => $validated['name'],
             'email' => $validated['email'],
         ];
 
         if (! empty($validated['password'])) {
-            $userData['password'] = Hash::make($validated['password']);
+            $datosUsuario['password'] = Hash::make($validated['password']);
         }
 
-        $user->update($userData);
-        $user->roles()->sync($validated['roles']);
+        $usuario->update($datosUsuario);
+        $usuario->roles()->sync($validated['roles']);
 
         return redirect()->back()->with('success', 'Usuario y roles actualizados correctamente.');
     }
 
     /**
-     * Delete user from system.
+     * Elimina un usuario del sistema.
      */
-    public function destroy(User $user, Request $request)
+    public function destroy(Usuario $usuario, Request $request)
     {
-        if ($request->user()->id === $user->id) {
+        if ($request->user()->id === $usuario->id) {
             return redirect()->back()->with('error', 'No puedes eliminar tu propio usuario de sesión.');
         }
 
-        $user->roles()->detach();
-        $user->delete();
+        $usuario->roles()->detach();
+        $usuario->delete();
 
         return redirect()->back()->with('success', 'Usuario eliminado correctamente.');
     }

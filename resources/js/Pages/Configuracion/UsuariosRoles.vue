@@ -5,7 +5,7 @@ import { Head, useForm, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
 const props = defineProps({
-    users: {
+    usuarios: {
         type: Array,
         required: true,
     },
@@ -22,7 +22,7 @@ const props = defineProps({
 // Modal state
 const isModalOpen = ref(false);
 const isEditing = ref(false);
-const editingUserId = ref(null);
+const usuarioEditandoId = ref(null);
 const search = ref('');
 
 // Form
@@ -35,21 +35,21 @@ const form = useForm({
 
 const openCreateModal = () => {
     isEditing.value = false;
-    editingUserId.value = null;
+    usuarioEditandoId.value = null;
     form.reset();
     form.clearErrors();
     form.roles = [];
     isModalOpen.value = true;
 };
 
-const openEditModal = (user) => {
+const openEditModal = (usuario) => {
     isEditing.value = true;
-    editingUserId.value = user.id;
+    usuarioEditandoId.value = usuario.id;
     form.clearErrors();
-    form.name = user.name;
-    form.email = user.email;
+    form.name = usuario.name;
+    form.email = usuario.email;
     form.password = ''; // Opcional al editar
-    form.roles = [...user.role_ids];
+    form.roles = [...usuario.ids_roles];
     isModalOpen.value = true;
 };
 
@@ -59,18 +59,18 @@ const closeModal = () => {
     form.clearErrors();
 };
 
-const toggleRole = (roleId) => {
-    const idx = form.roles.indexOf(roleId);
+const alternarRol = (rolId) => {
+    const idx = form.roles.indexOf(rolId);
     if (idx > -1) {
         form.roles.splice(idx, 1);
     } else {
-        form.roles.push(roleId);
+        form.roles.push(rolId);
     }
 };
 
-const saveUser = () => {
+const guardarUsuario = () => {
     if (isEditing.value) {
-        form.put(route('configuracion.usuarios.update', editingUserId.value), {
+        form.put(route('configuracion.usuarios.update', usuarioEditandoId.value), {
             onSuccess: () => closeModal(),
         });
     } else {
@@ -80,17 +80,17 @@ const saveUser = () => {
     }
 };
 
-const deleteUser = (user) => {
-    if (confirm(`¿Estás seguro de eliminar al usuario "${user.name}"?`)) {
-        router.delete(route('configuracion.usuarios.destroy', user.id));
+const eliminarUsuario = (usuario) => {
+    if (confirm(`¿Estás seguro de eliminar al usuario "${usuario.name}"?`)) {
+        router.delete(route('configuracion.usuarios.destroy', usuario.id));
     }
 };
 
-const getRoleBadgeClass = (roleName) => {
-    if (roleName === 'superadmin') {
+const obtenerEstiloRol = (nombreRol) => {
+    if (nombreRol === 'admin') {
         return 'bg-purple-100 text-purple-700 border-purple-200';
     }
-    if (roleName === 'vendedor') {
+    if (nombreRol === 'vendedor') {
         return 'bg-indigo-100 text-indigo-700 border-indigo-200';
     }
     return 'bg-slate-100 text-slate-700 border-slate-200';
@@ -151,7 +151,7 @@ const getRoleBadgeClass = (roleName) => {
             <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h2 class="text-lg font-bold text-slate-900">Usuarios Registrados</h2>
-                    <p class="text-xs text-slate-400 font-medium">Total de {{ users.length }} usuarios en la plataforma</p>
+                    <p class="text-xs text-slate-400 font-medium">Total de {{ usuarios.length }} usuarios en la plataforma</p>
                 </div>
             </div>
 
@@ -168,19 +168,19 @@ const getRoleBadgeClass = (roleName) => {
                     </thead>
                     <tbody class="divide-y divide-slate-100 text-sm">
                         <tr
-                            v-for="user in users"
-                            :key="user.id"
+                            v-for="usuario in usuarios"
+                            :key="usuario.id"
                             class="hover:bg-slate-50/60 transition-colors"
                         >
                             <!-- Usuario -->
                             <td class="py-4 px-6">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 font-extrabold flex items-center justify-center shrink-0 text-sm">
-                                        {{ user.name.charAt(0).toUpperCase() }}
+                                        {{ usuario.name.charAt(0).toUpperCase() }}
                                     </div>
                                     <div>
-                                        <div class="font-bold text-slate-900 leading-tight">{{ user.name }}</div>
-                                        <div class="text-xs text-slate-400 font-medium mt-0.5">{{ user.email }}</div>
+                                        <div class="font-bold text-slate-900 leading-tight">{{ usuario.name }}</div>
+                                        <div class="text-xs text-slate-400 font-medium mt-0.5">{{ usuario.email }}</div>
                                     </div>
                                 </div>
                             </td>
@@ -189,15 +189,15 @@ const getRoleBadgeClass = (roleName) => {
                             <td class="py-4 px-6">
                                 <div class="flex flex-wrap gap-1.5">
                                     <span
-                                        v-for="r in user.roles"
-                                        :key="r.id"
-                                        :class="getRoleBadgeClass(r.name)"
+                                        v-for="rol in usuario.roles"
+                                        :key="rol.id"
+                                        :class="obtenerEstiloRol(rol.nombre)"
                                         class="px-2.5 py-1 text-xs font-bold rounded-lg border inline-flex items-center gap-1"
                                     >
-                                        <span class="w-1.5 h-1.5 rounded-full" :class="r.name === 'superadmin' ? 'bg-purple-600' : 'bg-indigo-600'"></span>
-                                        {{ r.display_name }}
+                                        <span class="w-1.5 h-1.5 rounded-full" :class="rol.nombre === 'admin' ? 'bg-purple-600' : 'bg-indigo-600'"></span>
+                                        {{ rol.nombre_visible }}
                                     </span>
-                                    <span v-if="user.roles.length === 0" class="text-xs text-slate-400 italic">
+                                    <span v-if="usuario.roles.length === 0" class="text-xs text-slate-400 italic">
                                         Sin rol asignado
                                     </span>
                                 </div>
@@ -205,21 +205,21 @@ const getRoleBadgeClass = (roleName) => {
 
                             <!-- Fecha -->
                             <td class="py-4 px-6 text-xs text-slate-500 font-medium">
-                                {{ user.created_at || 'Reciente' }}
+                                {{ usuario.created_at || 'Reciente' }}
                             </td>
 
                             <!-- Acciones -->
                             <td class="py-4 px-6 text-right">
                                 <div class="inline-flex items-center gap-2">
                                     <button
-                                        @click="openEditModal(user)"
+                                        @click="openEditModal(usuario)"
                                         type="button"
                                         class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-purple-50 hover:text-purple-700 text-slate-700 text-xs font-semibold transition-colors"
                                     >
                                         Editar Roles
                                     </button>
                                     <button
-                                        @click="deleteUser(user)"
+                                        @click="eliminarUsuario(usuario)"
                                         type="button"
                                         class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-500 text-xs font-semibold transition-colors"
                                     >
@@ -258,7 +258,7 @@ const getRoleBadgeClass = (roleName) => {
                 </div>
 
                 <!-- Form -->
-                <form @submit.prevent="saveUser" class="p-6 space-y-4">
+                <form @submit.prevent="guardarUsuario" class="p-6 space-y-4">
                     <!-- Nombre -->
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
@@ -311,11 +311,11 @@ const getRoleBadgeClass = (roleName) => {
                         </label>
                         <div class="space-y-2.5">
                             <div
-                                v-for="role in roles"
-                                :key="role.id"
-                                @click="toggleRole(role.id)"
+                                v-for="rol in roles"
+                                :key="rol.id"
+                                @click="alternarRol(rol.id)"
                                 :class="[
-                                    form.roles.includes(role.id)
+                                    form.roles.includes(rol.id)
                                         ? 'border-purple-600 bg-purple-50/70 ring-1 ring-purple-600'
                                         : 'border-slate-200 bg-slate-50 hover:bg-slate-100/70',
                                     'p-3.5 rounded-2xl border cursor-pointer transition-all flex items-start gap-3 select-none'
@@ -323,19 +323,19 @@ const getRoleBadgeClass = (roleName) => {
                             >
                                 <input
                                     type="checkbox"
-                                    :checked="form.roles.includes(role.id)"
-                                    @change.stop="toggleRole(role.id)"
+                                    :checked="form.roles.includes(rol.id)"
+                                    @change.stop="alternarRol(rol.id)"
                                     class="mt-0.5 rounded text-purple-600 focus:ring-purple-500 border-slate-300"
                                 />
                                 <div>
                                     <div class="text-xs font-bold text-slate-900 flex items-center gap-2">
-                                        <span>{{ role.display_name }}</span>
+                                        <span>{{ rol.nombre_visible }}</span>
                                         <span class="text-[10px] font-semibold px-2 py-0.2 rounded-md bg-white border border-slate-200 text-slate-500">
-                                            {{ role.name }}
+                                            {{ rol.nombre }}
                                         </span>
                                     </div>
                                     <p class="text-xs text-slate-500 mt-0.5">
-                                        {{ role.description || 'Sin descripción' }}
+                                        {{ rol.descripcion || 'Sin descripción' }}
                                     </p>
                                 </div>
                             </div>

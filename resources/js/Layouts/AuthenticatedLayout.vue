@@ -7,23 +7,23 @@ const showingMobileMenu = ref(false);
 const activeTab = ref('dashboard');
 const configDropdownOpen = ref(route().current('configuracion.*') || false);
 
-const userRoles = computed(() => page.props.auth?.user?.roles || []);
-const isSuperAdmin = computed(() => userRoles.value.includes('superadmin'));
+const rolesUsuario = computed(() => page.props.auth?.usuario?.roles || []);
+const esAdministrador = computed(() => rolesUsuario.value.includes('admin'));
 
 const allMenuItems = [
-    { id: 'dashboard', name: 'Dashboard', route: 'dashboard', roles: ['superadmin'], icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-    { id: 'ventas', name: 'Ventas', route: 'ventas.index', roles: ['superadmin', 'vendedor'], icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z' },
-    { id: 'inventario', name: 'Inventario', roles: ['superadmin'], icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
-    { id: 'domicilios', name: 'Domicilios', roles: ['superadmin'], icon: 'M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0 2 2 0 00-4 0zm10 0a2 2 0 104 0 2 2 0 00-4 0z' },
-    { id: 'proveedores', name: 'Proveedores', roles: ['superadmin'], icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
-    { id: 'caja', name: 'Caja', roles: ['superadmin'], icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z' },
-    { id: 'reportes', name: 'Reportes', roles: ['superadmin'], icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+    { id: 'dashboard', name: 'Dashboard', route: 'dashboard', roles: ['admin'], icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+    { id: 'ventas', name: 'Ventas', route: 'ventas.index', roles: ['admin', 'vendedor'], icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z' },
+    { id: 'inventario', name: 'Inventario', route: 'inventario.index', roles: ['admin', 'vendedor'], icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
+    { id: 'domicilios', name: 'Domicilios', roles: ['admin'], icon: 'M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0 2 2 0 00-4 0zm10 0a2 2 0 104 0 2 2 0 00-4 0z' },
+    { id: 'proveedores', name: 'Proveedores', roles: ['admin'], icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
+    { id: 'caja', name: 'Caja', roles: ['admin'], icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z' },
+    { id: 'reportes', name: 'Reportes', roles: ['admin'], icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
 ];
 
 const menuItems = computed(() => {
     return allMenuItems.filter(item => {
         if (!item.roles || item.roles.length === 0) return true;
-        return item.roles.some(r => userRoles.value.includes(r));
+        return item.roles.some(r => rolesUsuario.value.includes(r));
     });
 });
 </script>
@@ -62,7 +62,7 @@ const menuItems = computed(() => {
             <!-- TOP BRAND HEADER -->
             <div>
                 <div class="p-6 border-b border-purple-400/20">
-                    <Link :href="isSuperAdmin ? route('dashboard') : route('ventas.index')" class="flex items-center gap-3 group">
+                    <Link :href="esAdministrador ? route('dashboard') : route('ventas.index')" class="flex items-center gap-3 group">
                         <div class="w-10 h-10 rounded-xl bg-purple-500/40 backdrop-blur-md border border-purple-300/30 flex items-center justify-center text-white font-extrabold text-xl shadow-lg">
                             PV
                         </div>
@@ -113,8 +113,8 @@ const menuItems = computed(() => {
                         </button>
                     </template>
 
-                    <!-- DROPDOWN CONFIGURACIONES (SOLO SUPERADMIN) -->
-                    <div v-if="isSuperAdmin" class="pt-2">
+                    <!-- DROPDOWN CONFIGURACIONES (SOLO ADMINISTRADOR) -->
+                    <div v-if="esAdministrador" class="pt-2">
                         <button
                             type="button"
                             @click="configDropdownOpen = !configDropdownOpen"
@@ -176,12 +176,12 @@ const menuItems = computed(() => {
                 <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-3 min-w-0">
                         <div class="w-9 h-9 rounded-full bg-purple-400/30 border border-purple-300/40 flex items-center justify-center font-bold text-white text-sm shrink-0">
-                            {{ $page.props.auth.user?.name ? $page.props.auth.user.name.charAt(0).toUpperCase() : 'U' }}
+                            {{ $page.props.auth.usuario?.name ? $page.props.auth.usuario.name.charAt(0).toUpperCase() : 'U' }}
                         </div>
                         <div class="min-w-0 flex-1">
-                            <p class="text-sm font-bold text-white truncate leading-tight">{{ $page.props.auth.user?.name }}</p>
+                            <p class="text-sm font-bold text-white truncate leading-tight">{{ $page.props.auth.usuario?.name }}</p>
                             <p class="text-[11px] text-purple-300 truncate capitalize">
-                                Rol: {{ userRoles.length ? userRoles.join(', ') : 'Usuario' }}
+                                Rol: {{ rolesUsuario.length ? rolesUsuario.join(', ') : 'Usuario' }}
                             </p>
                         </div>
                     </div>

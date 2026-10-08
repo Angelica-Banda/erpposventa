@@ -3,15 +3,17 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Database\Factories\UserFactory;
+use Database\Factories\UsuarioFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class Usuario extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
+    /** @use HasFactory<UsuarioFactory> */
     use HasFactory, Notifiable;
+
+    protected $table = 'usuarios';
 
     /**
      * The attributes that are mass assignable.
@@ -48,34 +50,34 @@ class User extends Authenticatable
     }
 
     /**
-     * The roles that belong to the user.
+     * Roles asignados a este usuario.
      */
     public function roles(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        return $this->belongsToMany(Role::class, 'role_users')->withTimestamps();
+        return $this->belongsToMany(Rol::class, 'roles_usuarios', 'usuario_id', 'rol_id')->withTimestamps();
     }
 
     /**
-     * Check if user has a specific role or any role from a list.
+     * Comprueba si el usuario tiene uno o varios roles.
      */
-    public function hasRole(string|array $roles): bool
+    public function tieneRol(string|array $roles): bool
     {
         if (is_string($roles)) {
-            return $this->roles->contains('name', $roles);
+            return $this->roles->contains('nombre', $roles);
         }
 
-        return $this->roles->whereIn('name', $roles)->isNotEmpty();
+        return $this->roles->whereIn('nombre', $roles)->isNotEmpty();
     }
 
     /**
-     * Assign a role to the user.
+     * Asigna un rol al usuario.
      */
-    public function assignRole(string|Role $role): void
+    public function asignarRol(string|Rol $rol): void
     {
-        if (is_string($role)) {
-            $role = Role::firstOrCreate(['name' => $role], ['display_name' => ucfirst($role)]);
+        if (is_string($rol)) {
+            $rol = Rol::firstOrCreate(['nombre' => $rol], ['nombre_visible' => ucfirst($rol)]);
         }
 
-        $this->roles()->syncWithoutDetaching([$role->id]);
+        $this->roles()->syncWithoutDetaching([$rol->id]);
     }
 }
