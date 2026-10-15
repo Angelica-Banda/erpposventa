@@ -1,10 +1,15 @@
 <?php
 
 use App\Http\Controllers\CategoriaController;
+use App\Http\Controllers\CajaController;
+use App\Http\Controllers\CompraController;
+use App\Http\Controllers\DomicilioController;
 use App\Http\Controllers\InventarioController;
 use App\Http\Controllers\MovimientoInventarioController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProductoController;
+use App\Http\Controllers\ProveedorController;
+use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\VentaController;
 use Illuminate\Http\Request;
@@ -38,6 +43,31 @@ Route::get('/ventas', [VentaController::class, 'index'])
 Route::post('/ventas', [VentaController::class, 'store'])
     ->middleware(['auth', 'verified', 'rol:vendedor,admin'])
     ->name('ventas.store');
+
+// Seguimiento de domicilios propios para vendedor y administrador
+Route::middleware(['auth', 'verified', 'rol:vendedor,admin'])->group(function () {
+    Route::get('/domicilios', [DomicilioController::class, 'index'])->name('domicilios.index');
+    Route::patch('/domicilios/{venta}/entregar', [DomicilioController::class, 'markDelivered'])->name('domicilios.entregar');
+});
+
+// Caja individual de cada vendedor o administrador
+Route::middleware(['auth', 'verified', 'rol:vendedor,admin'])->group(function () {
+    Route::get('/caja', [CajaController::class, 'index'])->name('caja.index');
+    Route::post('/caja/abrir', [CajaController::class, 'open'])->name('caja.open');
+    Route::post('/caja/{caja}/cerrar', [CajaController::class, 'close'])->name('caja.close');
+});
+
+// Compras y proveedores: exclusivo para admin
+Route::middleware(['auth', 'verified', 'rol:admin'])->group(function () {
+    Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
+    Route::get('/proveedores', [ProveedorController::class, 'index'])->name('proveedores.index');
+    Route::post('/proveedores', [ProveedorController::class, 'store'])->name('proveedores.store');
+    Route::put('/proveedores/{proveedor}', [ProveedorController::class, 'update'])->name('proveedores.update');
+    Route::delete('/proveedores/{proveedor}', [ProveedorController::class, 'destroy'])->name('proveedores.destroy');
+    Route::post('/proveedores/compras', [CompraController::class, 'store'])->name('proveedores.compras.store');
+    Route::get('/proveedores/compras/{compra}/comprobante', [CompraController::class, 'receipt'])->name('proveedores.compras.receipt');
+    Route::post('/proveedores/compras/{compra}/recibir', [CompraController::class, 'receive'])->name('proveedores.compras.receive');
+});
 
 // Módulo de Inventario: lectura para vendedor y admin, escritura solo admin
 Route::get('/inventario', [InventarioController::class, 'index'])->middleware(['auth', 'verified', 'rol:vendedor,admin'])->name('inventario.index');

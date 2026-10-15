@@ -1,6 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 
 const props = defineProps({
@@ -11,6 +11,10 @@ const props = defineProps({
     flash: {
         type: Object,
         default: () => ({}),
+    },
+    cajaAbierta: {
+        type: Boolean,
+        default: false,
     },
     receipt: {
         type: Object,
@@ -25,6 +29,11 @@ const currentReceipt = ref(props.receipt);
 const isReceiptOpen = ref(false);
 const saleForm = useForm({
     items: [],
+    tipo_venta: 'mostrador',
+    cliente_nombre: '',
+    cliente_telefono: '',
+    domicilio_direccion: '',
+    costo_domicilio: 0,
 });
 const availableProductsCount = computed(() => products.value.filter(product => Number(product.stock) > 0).length);
 
@@ -56,6 +65,7 @@ const removeFromCart = (id) => {
 const clearCart = () => {
     cart.value = [];
     stockLimitMessage.value = '';
+    saleForm.reset('tipo_venta', 'cliente_nombre', 'cliente_telefono', 'domicilio_direccion', 'costo_domicilio');
     saleForm.clearErrors();
 };
 
@@ -80,7 +90,8 @@ const printReceipt = () => {
 };
 
 const total = computed(() => {
-    return cart.value.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    const subtotal = cart.value.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    return subtotal + (saleForm.tipo_venta === 'domicilio' ? Number(saleForm.costo_domicilio || 0) : 0);
 });
 
 const formatCurrency = (amount) => {
@@ -109,15 +120,23 @@ const formatCurrency = (amount) => {
             </div>
 
             <div class="flex items-center gap-2">
-                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200">
-                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                    Caja abierta #01
-                </span>
+                <Link v-if="cajaAbierta" :href="route('caja.index')" class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+                    <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                    Caja abierta
+                </Link>
+                <Link v-else :href="route('caja.index')" class="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800">
+                    <span class="h-2 w-2 rounded-full bg-amber-500"></span>
+                    Caja cerrada
+                </Link>
             </div>
         </div>
 
         <div v-if="flash.success" class="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-semibold" role="status">
             {{ flash.success }}
+        </div>
+        <div v-if="!cajaAbierta" class="mb-6 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between" role="status">
+            <span>Abre tu caja para poder registrar ventas en efectivo.</span>
+            <Link :href="route('caja.index')" class="shrink-0 font-bold underline">Ir a Caja</Link>
         </div>
 
         <!-- POS Workspace (2 columns) -->
@@ -190,6 +209,41 @@ const formatCurrency = (amount) => {
                         </button>
                     </div>
 
+                    <div class="mb-5">
+                        <label for="sale-type" class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Tipo de venta</label>
+                        <select id="sale-type" v-model="saleForm.tipo_venta" class="w-full rounded-xl border-slate-200 bg-slate-50 text-sm font-semibold text-slate-800 focus:border-purple-400 focus:ring-purple-500">
+                            <option value="mostrador">Venta en mostrador</option>
+                            <option value="domicilio">Venta a domicilio</option>
+                        </select>
+                        <p v-if="saleForm.errors.tipo_venta" class="mt-1 text-xs text-rose-600">{{ saleForm.errors.tipo_venta }}</p>
+                    </div>
+
+                    <div v-if="saleForm.tipo_venta === 'domicilio'" class="mb-5 space-y-3 rounded-2xl border border-purple-100 bg-purple-50/50 p-4">
+                        <h3 class="text-sm font-bold text-slate-800">Datos del domicilio</h3>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <div>
+                                <label for="delivery-customer" class="mb-1 block text-xs font-semibold text-slate-600">Nombre del cliente</label>
+                                <input id="delivery-customer" v-model="saleForm.cliente_nombre" type="text" maxlength="255" required autocomplete="name" class="w-full rounded-xl border-slate-200 bg-white text-sm focus:border-purple-400 focus:ring-purple-500" />
+                                <p v-if="saleForm.errors.cliente_nombre" class="mt-1 text-xs text-rose-600">{{ saleForm.errors.cliente_nombre }}</p>
+                            </div>
+                            <div>
+                                <label for="delivery-phone" class="mb-1 block text-xs font-semibold text-slate-600">Teléfono</label>
+                                <input id="delivery-phone" v-model="saleForm.cliente_telefono" type="tel" maxlength="30" required autocomplete="tel" class="w-full rounded-xl border-slate-200 bg-white text-sm focus:border-purple-400 focus:ring-purple-500" />
+                                <p v-if="saleForm.errors.cliente_telefono" class="mt-1 text-xs text-rose-600">{{ saleForm.errors.cliente_telefono }}</p>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="delivery-address" class="mb-1 block text-xs font-semibold text-slate-600">Dirección de entrega</label>
+                            <textarea id="delivery-address" v-model="saleForm.domicilio_direccion" rows="2" maxlength="2000" required autocomplete="street-address" class="w-full rounded-xl border-slate-200 bg-white text-sm focus:border-purple-400 focus:ring-purple-500"></textarea>
+                            <p v-if="saleForm.errors.domicilio_direccion" class="mt-1 text-xs text-rose-600">{{ saleForm.errors.domicilio_direccion }}</p>
+                        </div>
+                        <div>
+                            <label for="delivery-cost" class="mb-1 block text-xs font-semibold text-slate-600">Costo del domicilio</label>
+                            <input id="delivery-cost" v-model.number="saleForm.costo_domicilio" type="number" min="0" step="0.01" required class="w-full rounded-xl border-slate-200 bg-white text-sm focus:border-purple-400 focus:ring-purple-500" />
+                            <p v-if="saleForm.errors.costo_domicilio" class="mt-1 text-xs text-rose-600">{{ saleForm.errors.costo_domicilio }}</p>
+                        </div>
+                    </div>
+
                     <!-- Items List -->
                     <div v-if="cart.length === 0" class="py-16 text-center text-slate-400">
                         <svg class="w-12 h-12 mx-auto mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -228,8 +282,19 @@ const formatCurrency = (amount) => {
                     <div v-if="saleForm.errors.items" class="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" role="alert">
                         {{ saleForm.errors.items }}
                     </div>
+                    <div v-if="saleForm.errors.caja" class="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900" role="alert">
+                        {{ saleForm.errors.caja }}
+                        <Link :href="route('caja.index')" class="ml-1 underline">Abrir caja</Link>
+                    </div>
+                    <div v-if="saleForm.errors.domicilio" class="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" role="alert">
+                        {{ saleForm.errors.domicilio }}
+                    </div>
+                    <div v-if="saleForm.tipo_venta === 'domicilio'" class="mb-3 flex items-center justify-between text-sm text-slate-500">
+                        <span>Costo del domicilio</span>
+                        <span class="font-bold text-slate-700">{{ formatCurrency(saleForm.costo_domicilio) }}</span>
+                    </div>
                     <div class="flex items-center justify-between mb-4">
-                        <span class="text-sm font-semibold text-slate-500">Total a Pagar</span>
+                        <span class="text-sm font-semibold text-slate-500">Total a pagar</span>
                         <span class="text-2xl font-black text-purple-700">{{ formatCurrency(total) }}</span>
                     </div>
 
@@ -259,6 +324,12 @@ const formatCurrency = (amount) => {
 
                 <div class="py-4 text-xs text-slate-600">
                     <p>Vendedor: <span class="font-semibold text-slate-800">{{ currentReceipt.seller }}</span></p>
+                    <template v-if="currentReceipt.tipo_venta === 'domicilio'">
+                        <p class="mt-1 font-bold text-purple-700">Pedido a domicilio · {{ currentReceipt.domicilio_estado === 'pendiente' ? 'Pendiente' : 'Entregado' }}</p>
+                        <p class="mt-1">Cliente: <span class="font-semibold text-slate-800">{{ currentReceipt.cliente_nombre }}</span></p>
+                        <p>Teléfono: <span class="font-semibold text-slate-800">{{ currentReceipt.cliente_telefono }}</span></p>
+                        <p>Dirección: <span class="font-semibold text-slate-800">{{ currentReceipt.domicilio_direccion }}</span></p>
+                    </template>
                 </div>
 
                 <div class="border-y border-dashed border-slate-300 py-3">
@@ -273,6 +344,10 @@ const formatCurrency = (amount) => {
                     </div>
                 </div>
 
+                <div v-if="currentReceipt.tipo_venta === 'domicilio'" class="flex items-center justify-between border-b border-dashed border-slate-300 py-3 text-sm">
+                    <span class="font-semibold text-slate-600">Costo del domicilio</span>
+                    <span class="font-bold text-slate-900">{{ formatCurrency(currentReceipt.costo_domicilio) }}</span>
+                </div>
                 <div class="flex items-center justify-between py-4">
                     <span class="font-bold text-slate-700">Total</span>
                     <span class="text-xl font-black text-purple-700">{{ formatCurrency(currentReceipt.total) }}</span>

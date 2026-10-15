@@ -108,6 +108,7 @@ class InventarioController extends Controller
                         'inicial' => 'Stock inicial',
                         'ajuste' => 'Ajuste manual',
                         'venta' => 'Venta',
+                        'compra' => 'Compra recibida',
                         default => $movement->tipo,
                     },
                     $this->safeCsvText($movement->producto_codigo),
@@ -170,7 +171,7 @@ class InventarioController extends Controller
     private function validateMovementFilters(Request $request): array
     {
         return $request->validate([
-            'movement_type' => ['nullable', 'in:inicial,ajuste,venta'],
+            'movement_type' => ['nullable', 'in:inicial,ajuste,venta,compra'],
             'movement_product' => ['nullable', 'string', 'max:150'],
             'movement_from' => ['nullable', 'date_format:Y-m-d'],
             'movement_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:movement_from'],

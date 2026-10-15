@@ -202,8 +202,14 @@ const deleteCategory = (category) => {
 };
 
 const lowStockProducts = computed(() => {
-    return props.products.filter((product) => Number(product.stock) <= Number(product.stock_minimo || 0));
+    return props.products.filter(isLowStock);
 });
+
+const visibleLowStockProducts = computed(() => lowStockProducts.value.slice(0, 5));
+
+const isLowStock = (product) => {
+    return Number(product.stock) <= Number(product.stock_minimo || 0);
+};
 
 const filteredProducts = computed(() => {
     const query = search.value.trim().toLocaleLowerCase('es');
@@ -214,12 +220,17 @@ const filteredProducts = computed(() => {
             || product.codigo.toLocaleLowerCase('es').includes(query);
         const matchesCategory = categoryFilter.value === ''
             || String(product.categoria?.id) === categoryFilter.value;
-        const matchesLowStock = !lowStockOnly.value
-            || Number(product.stock) <= Number(product.stock_minimo || 0);
+        const matchesLowStock = !lowStockOnly.value || isLowStock(product);
 
         return matchesSearch && matchesCategory && matchesLowStock;
     });
 });
+
+const showLowStockProducts = () => {
+    search.value = '';
+    categoryFilter.value = '';
+    lowStockOnly.value = true;
+};
 
 const totalInventoryValue = computed(() => {
     return props.products.reduce((sum, product) => sum + Number(product.precio_venta || 0) * Number(product.stock || 0), 0);
@@ -348,6 +359,49 @@ const formatCurrency = (amount) => {
                 <p class="mt-3 text-xl font-extrabold text-emerald-600">{{ formatCurrency(totalInventoryValue) }}</p>
             </div>
         </div>
+
+        <section
+            v-if="lowStockProducts.length > 0"
+            role="status"
+            aria-live="polite"
+            aria-labelledby="low-stock-alert-title"
+            class="mb-8 rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm sm:p-6"
+        >
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span aria-hidden="true" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-amber-700 font-extrabold">!</span>
+                        <h2 id="low-stock-alert-title" class="text-lg font-extrabold text-amber-950">Alerta de stock bajo</h2>
+                    </div>
+                    <p class="mt-2 text-sm text-amber-900">
+                        {{ lowStockProducts.length }} {{ lowStockProducts.length === 1 ? 'producto requiere' : 'productos requieren' }}
+                        revisión porque llegaron al stock mínimo o están agotados.
+                    </p>
+                    <ul class="mt-4 grid gap-2 sm:grid-cols-2">
+                        <li
+                            v-for="product in visibleLowStockProducts"
+                            :key="product.id"
+                            class="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-amber-200/80 bg-white/80 px-3 py-2 text-sm"
+                        >
+                            <span class="min-w-0 truncate font-semibold text-slate-800">{{ product.nombre }}</span>
+                            <span :class="Number(product.stock) === 0 ? 'text-rose-700' : 'text-amber-800'" class="shrink-0 text-xs font-bold">
+                                {{ Number(product.stock) === 0 ? 'Agotado' : `${product.stock} / mín. ${product.stock_minimo}` }}
+                            </span>
+                        </li>
+                    </ul>
+                    <p v-if="lowStockProducts.length > visibleLowStockProducts.length" class="mt-2 text-xs font-medium text-amber-800">
+                        Y {{ lowStockProducts.length - visibleLowStockProducts.length }} más.
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    @click="showLowStockProducts"
+                    class="shrink-0 rounded-xl bg-amber-700 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-600 focus:ring-offset-2"
+                >
+                    Ver productos
+                </button>
+            </div>
+        </section>
 
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
             <div class="xl:col-span-2 bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
@@ -596,6 +650,7 @@ const formatCurrency = (amount) => {
                     <option value="inicial">Stock inicial</option>
                     <option value="ajuste">Ajuste manual</option>
                     <option value="venta">Venta</option>
+                    <option value="compra">Compra recibida</option>
                 </select>
                 <div>
                     <input v-model="movementFilterForm.movement_product" type="search" aria-label="Filtrar movimientos por producto" placeholder="Producto o código" class="w-full rounded-xl border-slate-200 bg-slate-50 text-sm text-slate-900 focus:border-purple-400 focus:ring-purple-500" />
@@ -625,7 +680,7 @@ const formatCurrency = (amount) => {
                             <span class="font-bold text-slate-900">{{ movement.producto_nombre }}</span>
                             <span class="text-xs text-slate-400">{{ movement.producto_codigo }}</span>
                             <span :class="movement.tipo === 'inicial' ? 'bg-purple-100 text-purple-700' : movement.tipo === 'venta' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'" class="rounded-md px-2 py-0.5 text-[10px] font-bold uppercase">
-                                {{ movement.tipo === 'inicial' ? 'Stock inicial' : movement.tipo === 'venta' ? 'Venta' : 'Ajuste' }}
+                                {{ movement.tipo === 'inicial' ? 'Stock inicial' : movement.tipo === 'venta' ? 'Venta' : movement.tipo === 'compra' ? 'Compra recibida' : 'Ajuste' }}
                             </span>
                         </div>
                         <p class="mt-1 text-sm text-slate-600">{{ movement.motivo }}</p>

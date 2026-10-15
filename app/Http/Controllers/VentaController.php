@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Caja;
 use App\Models\Producto;
 use App\Models\MovimientoInventario;
 use App\Models\Venta;
@@ -14,7 +15,7 @@ use Inertia\Response;
 
 class VentaController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $products = Producto::with('categoria')
             ->where('activo', true)
@@ -32,6 +33,10 @@ class VentaController extends Controller
 
         return Inertia::render('Ventas/Index', [
             'products' => $products,
+            'cajaAbierta' => Caja::query()
+                ->where('usuario_id', $request->user()->id)
+                ->where('estado', 'abierta')
+                ->exists(),
             'receipt' => session('receipt'),
             'flash' => [
                 'success' => session('success'),
@@ -46,11 +51,29 @@ class VentaController extends Controller
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'distinct', 'exists:productos,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'tipo_venta' => ['sometimes', 'required', 'in:mostrador,domicilio'],
+            'cliente_nombre' => ['required_if:tipo_venta,domicilio', 'nullable', 'string', 'max:255'],
+            'cliente_telefono' => ['required_if:tipo_venta,domicilio', 'nullable', 'string', 'max:30'],
+            'domicilio_direccion' => ['required_if:tipo_venta,domicilio', 'nullable', 'string', 'max:2000'],
+            'costo_domicilio' => ['required_if:tipo_venta,domicilio', 'nullable', 'numeric', 'min:0', 'max:9999999999.99'],
         ]);
 
         $quantities = collect($validated['items'])->keyBy('product_id');
+        $tipoVenta = $validated['tipo_venta'] ?? 'mostrador';
 
-        $sale = DB::transaction(function () use ($request, $quantities) {
+        $sale = DB::transaction(function () use ($request, $quantities, $validated, $tipoVenta) {
+            $caja = Caja::query()
+                ->where('usuario_id', $request->user()->id)
+                ->where('estado', 'abierta')
+                ->lockForUpdate()
+                ->first();
+
+            if (! $caja) {
+                throw ValidationException::withMessages([
+                    'caja' => 'Debes abrir tu caja antes de registrar una venta.',
+                ]);
+            }
+
             $products = Producto::query()
                 ->whereKey($quantities->keys())
                 ->orderBy('id')
@@ -77,8 +100,15 @@ class VentaController extends Controller
 
             $sale = Venta::create([
                 'usuario_id' => $request->user()->id,
+                'caja_id' => $caja->id,
                 'vendedor_nombre' => $request->user()->name,
                 'total' => 0,
+                'tipo_venta' => $tipoVenta,
+                'cliente_nombre' => $tipoVenta === 'domicilio' ? $validated['cliente_nombre'] : null,
+                'cliente_telefono' => $tipoVenta === 'domicilio' ? $validated['cliente_telefono'] : null,
+                'domicilio_direccion' => $tipoVenta === 'domicilio' ? $validated['domicilio_direccion'] : null,
+                'costo_domicilio' => $tipoVenta === 'domicilio' ? round((float) $validated['costo_domicilio'], 2) : 0,
+                'domicilio_estado' => $tipoVenta === 'domicilio' ? 'pendiente' : null,
             ]);
             $total = 0;
 
@@ -117,6 +147,7 @@ class VentaController extends Controller
                 $total += $subtotal;
             }
 
+            $total += $tipoVenta === 'domicilio' ? (float) $validated['costo_domicilio'] : 0;
             $sale->update(['total' => round($total, 2)]);
 
             return $sale;
@@ -128,6 +159,12 @@ class VentaController extends Controller
             'id' => $sale->id,
             'date' => $sale->created_at->format('d/m/Y H:i'),
             'seller' => $sale->vendedor_nombre,
+            'tipo_venta' => $sale->tipo_venta,
+            'cliente_nombre' => $sale->cliente_nombre,
+            'cliente_telefono' => $sale->cliente_telefono,
+            'domicilio_direccion' => $sale->domicilio_direccion,
+            'costo_domicilio' => (float) $sale->costo_domicilio,
+            'domicilio_estado' => $sale->domicilio_estado,
             'total' => (float) $sale->total,
             'items' => $sale->detalles->map(fn ($detail) => [
                 'code' => $detail->producto_codigo,
