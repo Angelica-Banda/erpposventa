@@ -27,5 +27,8 @@ class RegistrationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
+        $usuario = \App\Models\Usuario::where('email', 'test@example.com')->firstOrFail();
+        $this->assertDatabaseHas('roles', ['nombre' => 'vendedor']);
+        $this->assertTrue($usuario->tieneRol('vendedor'));
     }
 }

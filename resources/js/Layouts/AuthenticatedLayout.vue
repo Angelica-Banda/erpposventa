@@ -29,21 +29,25 @@ const menuItems = computed(() => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-50 flex flex-col lg:flex-row font-sans">
+    <div class="min-h-screen bg-[#F8F7F2] flex flex-col lg:flex-row font-sans">
         <!-- MOBILE HEADER -->
-        <div class="lg:hidden bg-purple-900 text-white flex items-center justify-between px-5 py-4 shadow-md sticky top-0 z-50">
+        <div class="lg:hidden bg-[#022C22] text-white flex items-center justify-between px-5 py-4 shadow-md sticky top-0 z-50">
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center font-bold text-white text-base">
-                    P
+                <div class="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D6B46A]/30 bg-[#064E3B] text-[#D6B46A]">
+                    <svg class="h-6 w-6" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+                        <path d="M10 8h8v5l2 3v16H8V16l2-3V8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                        <path d="M10.5 21h9M12 12h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                        <path d="M25 21h8v10a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V21Zm0 2h-2a2 2 0 0 0 0 4h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
                 </div>
                 <div>
-                    <h1 class="font-extrabold text-lg leading-none">PosVenta</h1>
-                    <span class="text-[11px] text-purple-300">POS - ERP</span>
+                    <h1 class="font-extrabold text-lg leading-none">Licores TITO</h1>
+                    <span class="text-[11px] text-[#D6B46A]">Sistema de Gestión</span>
                 </div>
             </div>
             <button
                 @click="showingMobileMenu = !showingMobileMenu"
-                class="p-2 rounded-lg bg-purple-800/80 text-purple-200 hover:text-white focus:outline-none"
+                class="p-2 rounded-lg bg-white/10 text-[#e4d4ad] hover:bg-white/15 hover:text-white focus:outline-none"
             >
                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path v-if="!showingMobileMenu" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -56,19 +60,23 @@ const menuItems = computed(() => {
         <aside
             :class="[
                 showingMobileMenu ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
-                'fixed lg:sticky top-0 left-0 z-40 h-screen w-64 bg-gradient-to-b from-[#4a154b] via-[#5b1990] to-[#3f1065] text-white flex flex-col justify-between transition-transform duration-300 ease-in-out shrink-0 shadow-2xl lg:shadow-none'
+                'fixed lg:sticky top-0 left-0 z-40 h-screen w-64 bg-gradient-to-b from-[#064E3B] via-[#043c2e] to-[#022C22] text-white flex flex-col justify-between transition-transform duration-300 ease-in-out shrink-0 shadow-2xl lg:shadow-none'
             ]"
         >
             <!-- TOP BRAND HEADER -->
             <div>
                 <div class="p-6 border-b border-purple-400/20">
                     <Link :href="esAdministrador ? route('dashboard') : route('ventas.index')" class="flex items-center gap-3 group">
-                        <div class="w-10 h-10 rounded-xl bg-purple-500/40 backdrop-blur-md border border-purple-300/30 flex items-center justify-center text-white font-extrabold text-xl shadow-lg">
-                            PV
+                        <div class="flex h-10 w-10 items-center justify-center rounded-xl border border-[#D6B46A]/30 bg-white/10 text-[#D6B46A] shadow-lg backdrop-blur-md">
+                            <svg class="h-7 w-7" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+                                <path d="M10 8h8v5l2 3v16H8V16l2-3V8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                                <path d="M10.5 21h9M12 12h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                                <path d="M25 21h8v10a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V21Zm0 2h-2a2 2 0 0 0 0 4h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
                         </div>
                         <div>
-                            <h2 class="text-2xl font-black tracking-tight text-white leading-tight">PosVenta</h2>
-                            <p class="text-xs font-semibold text-purple-200 tracking-wider uppercase">POS - ERP</p>
+                            <h2 class="text-xl font-black tracking-tight text-white leading-tight">Licores TITO</h2>
+                            <p class="text-[11px] font-semibold text-[#e4d4ad] tracking-wide">Sistema de Gestión</p>
                         </div>
                     </Link>
                 </div>

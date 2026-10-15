@@ -43,6 +43,8 @@ class RegistroUsuarioController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        $usuario->asignarRol('vendedor');
+
         event(new Registered($usuario));
 
         Auth::login($usuario);

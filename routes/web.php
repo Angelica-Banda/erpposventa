@@ -3,6 +3,7 @@
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\CajaController;
 use App\Http\Controllers\CompraController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DomicilioController;
 use App\Http\Controllers\InventarioController;
 use App\Http\Controllers\MovimientoInventarioController;
@@ -29,12 +30,9 @@ Route::get('/', function (Request $request) {
 });
 
 // Panel Principal: exclusivo para admin
-Route::get('/dashboard', function (Request $request) {
-    if ($request->user()->tieneRol('vendedor') && ! $request->user()->tieneRol('admin')) {
-        return redirect()->route('ventas.index');
-    }
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified', 'rol:admin'])
+    ->name('dashboard');
 
 // Módulo de Ventas: accesible para vendedor y admin
 Route::get('/ventas', [VentaController::class, 'index'])
@@ -60,6 +58,9 @@ Route::middleware(['auth', 'verified', 'rol:vendedor,admin'])->group(function ()
 // Compras y proveedores: exclusivo para admin
 Route::middleware(['auth', 'verified', 'rol:admin'])->group(function () {
     Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
+    Route::get('/reportes/exportar/{formato}', [ReporteController::class, 'export'])
+        ->whereIn('formato', ['pdf', 'excel'])
+        ->name('reportes.exportar');
     Route::get('/proveedores', [ProveedorController::class, 'index'])->name('proveedores.index');
     Route::post('/proveedores', [ProveedorController::class, 'store'])->name('proveedores.store');
     Route::put('/proveedores/{proveedor}', [ProveedorController::class, 'update'])->name('proveedores.update');
