@@ -1,7 +1,8 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, useForm, router, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { Head, Link, useForm, router, usePage } from '@inertiajs/vue3';
+import { computed, ref, watch } from 'vue';
+import ComprasPanel from '@/Pages/Proveedores/ComprasPanel.vue';
 
 const page = usePage();
 const props = defineProps({
@@ -28,10 +29,41 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+    proveedoresActivos: {
+        type: Array,
+        default: () => [],
+    },
+    compras: {
+        type: Object,
+        default: () => ({
+            data: [],
+            current_page: 1,
+            last_page: 1,
+            from: 0,
+            to: 0,
+            total: 0,
+        }),
+    },
+    comprasFilters: {
+        type: Object,
+        default: () => ({}),
+    },
+    activeTab: {
+        type: String,
+        default: 'catalogo',
+    },
     flash: {
         type: Object,
         default: () => ({}),
     },
+});
+
+const currentTab = ref(props.activeTab || 'catalogo');
+
+watch(() => props.activeTab, (newTab) => {
+    if (newTab) {
+        currentTab.value = newTab;
+    }
 });
 
 const canManageInventory = computed(() => page.props.auth?.usuario?.roles?.includes('admin') ?? false);
@@ -299,41 +331,51 @@ const formatCurrency = (amount) => {
     <Head title="Inventario - PosVenta" />
 
     <AuthenticatedLayout>
-        <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-purple-600 mb-1">
                     <span>Operación</span>
                     <span>/</span>
-                    <span>Inventario</span>
+                    <span>Inventario &amp; Compras</span>
                 </div>
                 <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">
                     Productos e Inventario
                 </h1>
                 <p class="mt-1 text-sm text-slate-500 font-medium">
-                    Control del catálogo, stock mínimo y categorías del negocio
+                    Control del catálogo, abastecimiento a proveedores y movimientos de stock
                 </p>
             </div>
             <div v-if="canManageInventory" class="flex flex-wrap gap-3">
-                <button
-                    type="button"
-                    :aria-expanded="showCategoryForm"
-                    aria-controls="category-form-panel"
-                    @click="toggleCategoryForm"
-                    class="inline-flex items-center justify-center gap-2 rounded-xl border border-purple-200 bg-white px-4 py-3 text-sm font-bold text-purple-700 shadow-sm transition-colors hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-                >
-                    <span aria-hidden="true" class="text-lg leading-none">{{ showCategoryForm ? '−' : '+' }}</span>
-                    {{ showCategoryForm ? 'Cerrar categoría' : editingCategoryId ? 'Continuar edición' : 'Nueva categoría' }}
-                </button>
-                <button
-                    type="button"
-                    :aria-expanded="showProductForm"
-                    aria-controls="product-form-panel"
-                    @click="toggleProductForm"
-                    class="inline-flex items-center justify-center gap-2 rounded-xl bg-purple-700 px-5 py-3 text-sm font-bold text-white shadow-md shadow-purple-700/20 transition-colors hover:bg-purple-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-                >
-                    <span aria-hidden="true" class="text-lg leading-none">{{ showProductForm ? '−' : '+' }}</span>
-                    {{ showProductForm ? 'Cerrar producto' : editingProductId ? 'Continuar edición' : 'Nuevo producto' }}
-                </button>
+                <template v-if="currentTab === 'catalogo'">
+                    <button
+                        type="button"
+                        :aria-expanded="showCategoryForm"
+                        aria-controls="category-form-panel"
+                        @click="toggleCategoryForm"
+                        class="inline-flex items-center justify-center gap-2 rounded-xl border border-purple-200 bg-white px-4 py-3 text-sm font-bold text-purple-700 shadow-sm transition-colors hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                    >
+                        <span aria-hidden="true" class="text-lg leading-none">{{ showCategoryForm ? '−' : '+' }}</span>
+                        {{ showCategoryForm ? 'Cerrar categoría' : editingCategoryId ? 'Continuar edición' : 'Nueva categoría' }}
+                    </button>
+                    <button
+                        type="button"
+                        :aria-expanded="showProductForm"
+                        aria-controls="product-form-panel"
+                        @click="toggleProductForm"
+                        class="inline-flex items-center justify-center gap-2 rounded-xl bg-purple-700 px-5 py-3 text-sm font-bold text-white shadow-md shadow-purple-700/20 transition-colors hover:bg-purple-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                    >
+                        <span aria-hidden="true" class="text-lg leading-none">{{ showProductForm ? '−' : '+' }}</span>
+                        {{ showProductForm ? 'Cerrar producto' : editingProductId ? 'Continuar edición' : 'Nuevo producto' }}
+                    </button>
+                </template>
+                <template v-else-if="currentTab === 'compras'">
+                    <Link
+                        :href="route('proveedores.index')"
+                        class="inline-flex items-center justify-center gap-2 rounded-xl border border-purple-200 bg-white px-4 py-3 text-sm font-bold text-purple-700 shadow-sm hover:bg-purple-50 transition-colors"
+                    >
+                        <span>Directorio de proveedores &rarr;</span>
+                    </Link>
+                </template>
             </div>
         </div>
 
@@ -345,6 +387,62 @@ const formatCurrency = (amount) => {
             <span class="w-2 h-2 rounded-full bg-rose-500"></span>
             <span>{{ $page.props.flash.error }}</span>
         </div>
+
+        <!-- Pestañas de Inventario (Solo Admin) -->
+        <div v-if="canManageInventory" class="mb-8 flex gap-2 border-b border-slate-200 overflow-x-auto pb-px">
+            <button
+                type="button"
+                @click="currentTab = 'catalogo'"
+                :class="[
+                    currentTab === 'catalogo'
+                        ? 'border-purple-700 text-purple-700 bg-purple-50/70 font-extrabold'
+                        : 'border-transparent text-slate-500 hover:text-slate-800 font-bold hover:bg-slate-50',
+                    'border-b-2 py-3 px-5 rounded-t-2xl text-xs sm:text-sm transition-all flex items-center gap-2.5 shrink-0'
+                ]"
+            >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                <span>Catálogo &amp; Existencias</span>
+                <span class="rounded-full bg-white px-2 py-0.5 text-xs font-bold text-slate-600 shadow-2xs">{{ products.length }}</span>
+            </button>
+
+            <button
+                type="button"
+                @click="currentTab = 'compras'"
+                :class="[
+                    currentTab === 'compras'
+                        ? 'border-purple-700 text-purple-700 bg-purple-50/70 font-extrabold'
+                        : 'border-transparent text-slate-500 hover:text-slate-800 font-bold hover:bg-slate-50',
+                    'border-b-2 py-3 px-5 rounded-t-2xl text-xs sm:text-sm transition-all flex items-center gap-2.5 shrink-0'
+                ]"
+            >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+                <span>Compras a Proveedores</span>
+                <span v-if="compras?.total > 0" class="rounded-full bg-purple-200 text-purple-800 px-2 py-0.5 text-xs font-bold">{{ compras.total }}</span>
+            </button>
+
+            <button
+                type="button"
+                @click="currentTab = 'movimientos'"
+                :class="[
+                    currentTab === 'movimientos'
+                        ? 'border-purple-700 text-purple-700 bg-purple-50/70 font-extrabold'
+                        : 'border-transparent text-slate-500 hover:text-slate-800 font-bold hover:bg-slate-50',
+                    'border-b-2 py-3 px-5 rounded-t-2xl text-xs sm:text-sm transition-all flex items-center gap-2.5 shrink-0'
+                ]"
+            >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <span>Historial de Movimientos</span>
+            </button>
+        </div>
+
+        <!-- VISTA DE CATÁLOGO Y STOCK -->
+        <div v-show="!canManageInventory || currentTab === 'catalogo'">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-5">
                 <p class="text-xs uppercase tracking-wider text-slate-400 font-bold">Productos</p>
@@ -631,8 +729,22 @@ const formatCurrency = (amount) => {
                 </div>
             </div>
         </div>
+        </div>
 
-        <div v-if="canManageInventory" class="mt-8 overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
+        <!-- SECCIÓN 2: COMPRAS A PROVEEDORES (SOLO ADMIN) -->
+        <div v-if="canManageInventory && currentTab === 'compras'" class="mb-10">
+            <ComprasPanel
+                :compras="compras || {}"
+                :proveedores="proveedoresActivos || []"
+                :productos="products || []"
+                :filters="comprasFilters || {}"
+                :flash="flash || {}"
+                targetRoute="inventario.index"
+            />
+        </div>
+
+        <!-- SECCIÓN 3: HISTORIAL DE MOVIMIENTOS (SOLO ADMIN) -->
+        <div v-if="canManageInventory && currentTab === 'movimientos'" class="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
             <div class="flex flex-col gap-3 border-b border-slate-100 p-6 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h2 class="text-lg font-bold text-slate-900">Historial de movimientos de stock</h2>

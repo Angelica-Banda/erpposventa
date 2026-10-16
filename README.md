@@ -1,4 +1,4 @@
-# 🛒 PosVenta - Sistema POS & ERP
+# 🛒 PosVenta - Control de ventas, inventario, caja y reportes en un solo lugar
 
 Sistema integral de gestión comercial, punto de venta (POS), control de inventario y administración de roles y usuarios, desarrollado con **Laravel**, **Vue 3**, **Inertia.js** y **Tailwind CSS**.
 
@@ -114,11 +114,15 @@ Crea las tablas en la base de datos (`usuarios`, `roles`, `roles_usuarios`, etc.
 php artisan migrate --seed
 ```
 
-*(Si ya habías corrido migraciones previas y deseas reiniciar la base de datos limpia con todos los datos iniciales, ejecuta `php artisan migrate:fresh --seed`).*
+### 8. Crear el Enlace Simbólico de Almacenamiento (Storage)
+Para permitir que los logos y archivos cargados se muestren públicamente:
+```bash
+php artisan storage:link
+```
 
 ---
 
-### 8. Compilar los Assets de Frontend
+### 9. Compilar los Assets de Frontend
 Para compilar los estilos y componentes Vue:
 
 * **Para entorno de desarrollo (con recarga rápida en vivo):**
@@ -132,7 +136,7 @@ Para compilar los estilos y componentes Vue:
 
 ---
 
-### 9. Iniciar el Servidor de Laravel
+### 10. Iniciar el Servidor de Laravel
 En una ventana de terminal independiente, inicia el servidor de desarrollo de PHP:
 ```bash
 php artisan serve
@@ -169,10 +173,16 @@ El seeder inicial genera automáticamente los roles y las siguientes cuentas de 
    - Carrito de compra reactivo con cálculo automático de totales.
    - Procesamiento de cobros y tickets.
 
-4. **Módulo de Configuraciones (`/configuracion/roles-usuarios`)**:
-   - Desplegable en el menú lateral para usuarios con el rol `admin`.
-   - CRUD completo: Crear nuevos usuarios, editar nombres/correos/contraseñas y asignar o remover roles del sistema mediante la tabla pivote `roles_usuarios`.
-   - Protección contra auto-eliminación de cuenta activa.
+4. **Módulo de Configuraciones**:
+   - **Datos de Empresa (`/configuracion/empresa`)**:
+     - Gestión integral de la información básica y comercial: Razón social, Nombre comercial, NIT, Dígito de Verificación (cálculo automático DIAN), dirección completa (País, Departamento, Municipio, Código Postal), teléfono, correo electrónico y sitio web.
+     - Gestión tributaria DIAN: Tipo de persona (Natural / Jurídica), Régimen tributario, selección múltiple de responsabilidades fiscales (O-13, O-15, O-23, O-47, R-99-PN, etc.), actividad económica principal (código CIIU) y detalles adicionales.
+     - Carga, reemplazo y eliminación de logo corporativo con previsualización en vivo.
+     - Integración automática y reactiva en la pantalla de inicio de sesión (`/login`) y en el menú lateral/sidebar de todo el sistema, con fallback predeterminado cuando no hay información configurada.
+   - **Roles y Usuarios (`/configuracion/roles-usuarios`)**:
+     - CRUD completo: Crear nuevos usuarios, editar nombres/correos/contraseñas y asignar o remover roles del sistema mediante la tabla pivote `roles_usuarios`.
+     - Protección contra auto-eliminación de cuenta activa.
+
 
 ---
 

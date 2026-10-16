@@ -17,88 +17,22 @@ class ProveedorController extends Controller
 {
     public function index(Request $request): Response
     {
-        $filters = $request->validate([
-            'busqueda' => ['nullable', 'string', 'max:100'],
-            'estado' => ['nullable', Rule::in(['pendiente', 'recibida'])],
-            'desde' => ['nullable', 'date_format:Y-m-d'],
-            'hasta' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:desde'],
-        ]);
-
-        $purchaseQuery = Compra::with('detalles');
-
-        if (! empty($filters['busqueda'])) {
-            $term = trim($filters['busqueda']);
-            $purchaseQuery->where(function (Builder $builder) use ($term) {
-                $builder->where('proveedor_nombre', 'like', '%'.$term.'%');
-                if (ctype_digit($term)) {
-                    $builder->orWhere('id', (int) $term);
-                }
-            });
-        }
-
-        if (! empty($filters['estado'])) {
-            $purchaseQuery->where('estado', $filters['estado']);
-        }
-
-        if (! empty($filters['desde'])) {
-            $purchaseQuery->whereDate('created_at', '>=', $filters['desde']);
-        }
-
-        if (! empty($filters['hasta'])) {
-            $purchaseQuery->whereDate('created_at', '<=', $filters['hasta']);
-        }
+        $proveedores = Proveedor::withCount('compras')
+            ->orderBy('nombre')
+            ->get()
+            ->map(fn (Proveedor $proveedor) => [
+                'id' => $proveedor->id,
+                'nombre' => $proveedor->nombre,
+                'nit' => $proveedor->nit,
+                'telefono' => $proveedor->telefono,
+                'correo' => $proveedor->correo,
+                'direccion' => $proveedor->direccion,
+                'activo' => (bool) $proveedor->activo,
+                'compras_count' => $proveedor->compras_count,
+            ]);
 
         return Inertia::render('Proveedores/Index', [
-            'proveedores' => Proveedor::withCount('compras')
-                ->orderBy('nombre')
-                ->get()
-                ->map(fn (Proveedor $proveedor) => [
-                    'id' => $proveedor->id,
-                    'nombre' => $proveedor->nombre,
-                    'nit' => $proveedor->nit,
-                    'telefono' => $proveedor->telefono,
-                    'correo' => $proveedor->correo,
-                    'direccion' => $proveedor->direccion,
-                    'activo' => (bool) $proveedor->activo,
-                    'compras_count' => $proveedor->compras_count,
-                ]),
-            'proveedoresActivos' => Proveedor::where('activo', true)
-                ->orderBy('nombre')
-                ->get(['id', 'nombre']),
-            'productos' => Producto::where('activo', true)
-                ->orderBy('nombre')
-                ->get(['id', 'codigo', 'nombre', 'precio_compra'])
-                ->map(fn (Producto $producto) => [
-                    'id' => $producto->id,
-                    'codigo' => $producto->codigo,
-                    'nombre' => $producto->nombre,
-                    'precio_compra' => (float) $producto->precio_compra,
-                ]),
-            'compras' => $purchaseQuery
-                ->latest()
-                ->paginate(15)
-                ->withQueryString()
-                ->through(fn (Compra $compra) => [
-                    'id' => $compra->id,
-                    'proveedor_nombre' => $compra->proveedor_nombre,
-                    'estado' => $compra->estado,
-                    'total' => (float) $compra->total,
-                    'created_at' => $compra->created_at?->format('d/m/Y H:i'),
-                    'recibida_en' => $compra->recibida_en?->format('d/m/Y H:i'),
-                    'detalles' => $compra->detalles->map(fn (DetalleCompra $detalle) => [
-                        'producto_codigo' => $detalle->producto_codigo,
-                        'producto_nombre' => $detalle->producto_nombre,
-                        'cantidad' => $detalle->cantidad,
-                        'precio_unitario' => (float) $detalle->precio_unitario,
-                        'subtotal' => (float) $detalle->subtotal,
-                    ])->values(),
-                ]),
-            'filters' => [
-                'busqueda' => $filters['busqueda'] ?? '',
-                'estado' => $filters['estado'] ?? '',
-                'desde' => $filters['desde'] ?? '',
-                'hasta' => $filters['hasta'] ?? '',
-            ],
+            'proveedores' => $proveedores,
             'flash' => [
                 'success' => session('success'),
                 'error' => session('error'),

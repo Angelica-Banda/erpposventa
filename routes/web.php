@@ -11,6 +11,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\EmpresaController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\VentaController;
 use Illuminate\Http\Request;
@@ -68,6 +69,10 @@ Route::middleware(['auth', 'verified', 'rol:admin'])->group(function () {
     Route::post('/proveedores/compras', [CompraController::class, 'store'])->name('proveedores.compras.store');
     Route::get('/proveedores/compras/{compra}/comprobante', [CompraController::class, 'receipt'])->name('proveedores.compras.receipt');
     Route::post('/proveedores/compras/{compra}/recibir', [CompraController::class, 'receive'])->name('proveedores.compras.receive');
+
+    Route::post('/inventario/compras', [CompraController::class, 'store'])->name('inventario.compras.store');
+    Route::post('/inventario/compras/{compra}/recibir', [CompraController::class, 'receive'])->name('inventario.compras.receive');
+    Route::get('/inventario/compras/{compra}/comprobante', [CompraController::class, 'receipt'])->name('inventario.compras.receipt');
 });
 
 // Módulo de Inventario: lectura para vendedor y admin, escritura solo admin
@@ -87,8 +92,10 @@ Route::prefix('inventario')->name('inventario.')->group(function () {
     Route::delete('/categorias/{categoria}', [CategoriaController::class, 'destroy'])->middleware(['auth', 'verified', 'rol:admin'])->name('categorias.destroy');
 });
 
-// Módulo de Configuración: exclusivo para admin (CRUD de usuarios y roles)
+// Módulo de Configuración: exclusivo para admin (CRUD de usuarios, roles y datos de empresa)
 Route::middleware(['auth', 'verified', 'rol:admin'])->prefix('configuracion')->name('configuracion.')->group(function () {
+    Route::get('/empresa', [EmpresaController::class, 'edit'])->name('empresa.edit');
+    Route::post('/empresa', [EmpresaController::class, 'update'])->name('empresa.update');
     Route::get('/roles-usuarios', [UsuarioController::class, 'index'])->name('roles.index');
     Route::post('/usuarios', [UsuarioController::class, 'store'])->name('usuarios.store');
     Route::put('/usuarios/{usuario}', [UsuarioController::class, 'update'])->name('usuarios.update');

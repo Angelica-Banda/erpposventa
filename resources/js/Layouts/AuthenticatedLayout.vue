@@ -9,6 +9,7 @@ const configDropdownOpen = ref(route().current('configuracion.*') || false);
 
 const rolesUsuario = computed(() => page.props.auth?.usuario?.roles || []);
 const esAdministrador = computed(() => rolesUsuario.value.includes('admin'));
+const empresa = computed(() => page.props.empresa || {});
 
 const allMenuItems = [
     { id: 'dashboard', name: 'Dashboard', route: 'dashboard', roles: ['admin'], icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
@@ -32,17 +33,16 @@ const menuItems = computed(() => {
     <div class="min-h-screen bg-[#F8F7F2] flex flex-col lg:flex-row font-sans">
         <!-- MOBILE HEADER -->
         <div class="lg:hidden bg-[#022C22] text-white flex items-center justify-between px-5 py-4 shadow-md sticky top-0 z-50">
-            <div class="flex items-center gap-3">
-                <div class="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D6B46A]/30 bg-[#064E3B] text-[#D6B46A]">
-                    <svg class="h-6 w-6" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-                        <path d="M10 8h8v5l2 3v16H8V16l2-3V8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
-                        <path d="M10.5 21h9M12 12h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-                        <path d="M25 21h8v10a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V21Zm0 2h-2a2 2 0 0 0 0 4h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
+            <div class="flex items-center gap-3 min-w-0">
+                <div v-if="empresa.logo_url" class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 p-1 border border-white/20 shrink-0">
+                    <img :src="empresa.logo_url" :alt="empresa.nombre_comercial || 'Logo'" class="max-h-full max-w-full object-contain" />
                 </div>
-                <div>
-                    <h1 class="font-extrabold text-lg leading-none">Licores TITO</h1>
-                    <span class="text-[11px] text-[#D6B46A]">Sistema de Gestión</span>
+                <div v-else class="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D6B46A]/30 bg-[#064E3B] text-[#D6B46A] shrink-0 font-bold text-sm">
+                    {{ (empresa.nombre_comercial || 'PV').substring(0, 2).toUpperCase() }}
+                </div>
+                <div class="min-w-0">
+                    <h1 class="font-extrabold text-lg leading-none truncate max-w-[190px]">{{ empresa.nombre_comercial || 'PosVenta' }}</h1>
+                    <span class="text-[11px] text-[#D6B46A] truncate block max-w-[190px]">{{ empresa.razon_social || 'Sistema de Gestión' }}</span>
                 </div>
             </div>
             <button
@@ -67,16 +67,15 @@ const menuItems = computed(() => {
             <div>
                 <div class="p-6 border-b border-purple-400/20">
                     <Link :href="esAdministrador ? route('dashboard') : route('ventas.index')" class="flex items-center gap-3 group">
-                        <div class="flex h-10 w-10 items-center justify-center rounded-xl border border-[#D6B46A]/30 bg-white/10 text-[#D6B46A] shadow-lg backdrop-blur-md">
-                            <svg class="h-7 w-7" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-                                <path d="M10 8h8v5l2 3v16H8V16l2-3V8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
-                                <path d="M10.5 21h9M12 12h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-                                <path d="M25 21h8v10a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V21Zm0 2h-2a2 2 0 0 0 0 4h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-                            </svg>
+                        <div v-if="empresa.logo_url" class="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 p-1.5 border border-white/20 shadow-lg backdrop-blur-md shrink-0">
+                            <img :src="empresa.logo_url" :alt="empresa.nombre_comercial || 'Logo'" class="max-h-full max-w-full object-contain" />
                         </div>
-                        <div>
-                            <h2 class="text-xl font-black tracking-tight text-white leading-tight">Licores TITO</h2>
-                            <p class="text-[11px] font-semibold text-[#e4d4ad] tracking-wide">Sistema de Gestión</p>
+                        <div v-else class="flex h-10 w-10 items-center justify-center rounded-xl border border-[#D6B46A]/30 bg-white/10 text-[#D6B46A] shadow-lg backdrop-blur-md shrink-0 font-extrabold text-base">
+                            {{ (empresa.nombre_comercial || 'PV').substring(0, 2).toUpperCase() }}
+                        </div>
+                        <div class="min-w-0">
+                            <h2 class="text-xl font-black tracking-tight text-white leading-tight truncate">{{ empresa.nombre_comercial || 'PosVenta' }}</h2>
+                            <p class="text-[11px] font-semibold text-[#e4d4ad] tracking-wide truncate">{{ empresa.razon_social || 'Sistema de Gestión' }}</p>
                         </div>
                     </Link>
                 </div>
@@ -159,6 +158,22 @@ const menuItems = computed(() => {
                             v-if="configDropdownOpen"
                             class="mt-1 ml-4 pl-4 border-l border-purple-400/30 space-y-1 py-1"
                         >
+                            <Link
+                                :href="route('configuracion.empresa.edit')"
+                                @click="showingMobileMenu = false"
+                                :class="[
+                                    route().current('configuracion.empresa.*')
+                                        ? 'bg-purple-500/50 text-white font-bold shadow-xs border border-purple-300/30'
+                                        : 'text-purple-200 hover:text-white hover:bg-white/10',
+                                    'flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all duration-150'
+                                ]"
+                            >
+                                <svg class="w-4 h-4 shrink-0 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                </svg>
+                                <span>Datos de Empresa</span>
+                            </Link>
+
                             <Link
                                 :href="route('configuracion.roles.index')"
                                 @click="showingMobileMenu = false"

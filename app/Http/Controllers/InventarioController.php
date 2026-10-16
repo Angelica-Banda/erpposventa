@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Categoria;
+use App\Models\Compra;
+use App\Models\DetalleCompra;
 use App\Models\MovimientoInventario;
 use App\Models\Producto;
+use App\Models\Proveedor;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -45,6 +48,9 @@ class InventarioController extends Controller
             ->get();
 
         $movements = null;
+        $compras = null;
+        $proveedoresActivos = [];
+
         if ($request->user()->tieneRol('admin')) {
             $movements = $this->filteredMovementQuery($movementFilters)
                 ->latest()
@@ -63,6 +69,54 @@ class InventarioController extends Controller
                         'created_at' => $movement->created_at?->format('d/m/Y H:i'),
                     ];
                 });
+
+            $proveedoresActivos = Proveedor::where('activo', true)
+                ->orderBy('nombre')
+                ->get(['id', 'nombre']);
+
+            $purchaseQuery = Compra::with('detalles');
+
+            if ($request->filled('compra_busqueda')) {
+                $term = trim($request->input('compra_busqueda'));
+                $purchaseQuery->where(function (Builder $builder) use ($term) {
+                    $builder->where('proveedor_nombre', 'like', '%'.$term.'%');
+                    if (ctype_digit($term)) {
+                        $builder->orWhere('id', (int) $term);
+                    }
+                });
+            }
+
+            if ($request->filled('compra_estado')) {
+                $purchaseQuery->where('estado', $request->input('compra_estado'));
+            }
+
+            if ($request->filled('compra_desde')) {
+                $purchaseQuery->whereDate('created_at', '>=', $request->input('compra_desde'));
+            }
+
+            if ($request->filled('compra_hasta')) {
+                $purchaseQuery->whereDate('created_at', '<=', $request->input('compra_hasta'));
+            }
+
+            $compras = $purchaseQuery
+                ->latest()
+                ->paginate(15, ['*'], 'compras_page')
+                ->withQueryString()
+                ->through(fn (Compra $compra) => [
+                    'id' => $compra->id,
+                    'proveedor_nombre' => $compra->proveedor_nombre,
+                    'estado' => $compra->estado,
+                    'total' => (float) $compra->total,
+                    'created_at' => $compra->created_at?->format('d/m/Y H:i'),
+                    'recibida_en' => $compra->recibida_en?->format('d/m/Y H:i'),
+                    'detalles' => $compra->detalles->map(fn (DetalleCompra $detalle) => [
+                        'producto_codigo' => $detalle->producto_codigo,
+                        'producto_nombre' => $detalle->producto_nombre,
+                        'cantidad' => $detalle->cantidad,
+                        'precio_unitario' => (float) $detalle->precio_unitario,
+                        'subtotal' => (float) $detalle->subtotal,
+                    ])->values(),
+                ]);
         }
 
         return Inertia::render('Inventario/Index', [
@@ -70,6 +124,15 @@ class InventarioController extends Controller
             'categories' => $categories,
             'movements' => $movements,
             'movementFilters' => $movementFilters,
+            'proveedoresActivos' => $proveedoresActivos,
+            'compras' => $compras,
+            'comprasFilters' => [
+                'busqueda' => $request->input('compra_busqueda', ''),
+                'estado' => $request->input('compra_estado', ''),
+                'desde' => $request->input('compra_desde', ''),
+                'hasta' => $request->input('compra_hasta', ''),
+            ],
+            'activeTab' => $request->input('tab', 'catalogo'),
             'flash' => [
                 'success' => session('success'),
                 'error' => session('error'),
