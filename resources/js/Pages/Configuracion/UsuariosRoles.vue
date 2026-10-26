@@ -13,6 +13,10 @@ const props = defineProps({
         type: Array,
         required: true,
     },
+    currentUserId: {
+        type: Number,
+        required: true,
+    },
     flash: {
         type: Object,
         default: () => ({}),
@@ -67,6 +71,8 @@ const alternarRol = (rolId) => {
         form.roles.push(rolId);
     }
 };
+
+const puedeEditarRoles = () => usuarioEditandoId.value !== props.currentUserId;
 
 const guardarUsuario = () => {
     if (isEditing.value) {
@@ -313,18 +319,21 @@ const obtenerEstiloRol = (nombreRol) => {
                             <div
                                 v-for="rol in roles"
                                 :key="rol.id"
-                                @click="alternarRol(rol.id)"
+                                @click="puedeEditarRoles() && alternarRol(rol.id)"
                                 :class="[
                                     form.roles.includes(rol.id)
                                         ? 'border-purple-600 bg-purple-50/70 ring-1 ring-purple-600'
                                         : 'border-slate-200 bg-slate-50 hover:bg-slate-100/70',
-                                    'p-3.5 rounded-2xl border cursor-pointer transition-all flex items-start gap-3 select-none'
+                                    !puedeEditarRoles() ? 'cursor-not-allowed opacity-70' : 'cursor-pointer',
+                                    'p-3.5 rounded-2xl border transition-all flex items-start gap-3 select-none'
                                 ]"
                             >
                                 <input
                                     type="checkbox"
                                     :checked="form.roles.includes(rol.id)"
-                                    @change.stop="alternarRol(rol.id)"
+                                    :disabled="!puedeEditarRoles()"
+                                    @click.stop
+                                    @change.stop="puedeEditarRoles() && alternarRol(rol.id)"
                                     class="mt-0.5 rounded text-purple-600 focus:ring-purple-500 border-slate-300"
                                 />
                                 <div>
@@ -340,6 +349,9 @@ const obtenerEstiloRol = (nombreRol) => {
                                 </div>
                             </div>
                         </div>
+                        <p v-if="!puedeEditarRoles()" class="mt-2 text-xs font-semibold text-amber-700">
+                            Por seguridad, no puedes cambiar los roles de tu propio usuario.
+                        </p>
                         <InputError class="mt-1" :message="form.errors.roles" />
                     </div>
 
