@@ -36,7 +36,7 @@ class ModuleIntegrationTest extends TestCase
         ]);
 
         $this->actingAs($admin)
-            ->post(route('proveedores.compras.store'), [
+            ->post(route('inventario.compras.store'), [
                 'proveedor_id' => $proveedor->id,
                 'detalles' => [[
                     'producto_id' => $producto->id,
@@ -45,12 +45,12 @@ class ModuleIntegrationTest extends TestCase
                 ]],
             ])
             ->assertSessionHasNoErrors()
-            ->assertRedirect(route('proveedores.index'));
+            ->assertRedirect(route('inventario.index', ['tab' => 'compras']));
 
         $compra = Compra::firstOrFail();
-        $this->post(route('proveedores.compras.receive', $compra))
+        $this->post(route('inventario.compras.receive', $compra))
             ->assertSessionHasNoErrors()
-            ->assertRedirect(route('proveedores.index'));
+            ->assertRedirect(route('inventario.index', ['tab' => 'compras']));
 
         $this->assertSame(6, $producto->fresh()->stock);
         $this->assertDatabaseHas('movimientos_inventario', [

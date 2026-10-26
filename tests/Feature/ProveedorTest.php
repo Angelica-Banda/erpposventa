@@ -70,7 +70,7 @@ class ProveedorTest extends TestCase
         $this->assertDatabaseHas('proveedores', ['id' => $proveedor->id]);
     }
 
-    public function test_supplier_module_includes_purchase_history_data(): void
+    public function test_purchase_history_is_available_in_inventory(): void
     {
         $admin = $this->createAdmin();
         $proveedor = Proveedor::create(['nombre' => 'Proveedor con compras']);
@@ -83,10 +83,10 @@ class ProveedorTest extends TestCase
         ]);
 
         $this->actingAs($admin)
-            ->get(route('proveedores.index'))
+            ->get(route('inventario.index', ['tab' => 'compras']))
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('Proveedores/Index')
+                ->component('Inventario/Index')
                 ->where('compras.total', 1)
                 ->where('compras.data.0.proveedor_nombre', 'Proveedor con compras')
                 ->has('proveedoresActivos', 1));

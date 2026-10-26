@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Caja;
+use App\Models\CajaAjuste;
 use App\Models\Usuario;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -59,6 +60,7 @@ class CajaController extends Controller
                 ->first();
 
             $reporteCierres = $consultaCierres
+                ->with(['ajustes' => fn ($query) => $query->latest('created_at')])
                 ->withSum('ventas as ventas_total', 'total')
                 ->latest('cerrada_en')
                 ->paginate(10)
@@ -164,6 +166,58 @@ class CajaController extends Controller
         return redirect()->route('caja.index')->with('success', 'Caja cerrada y conciliación registrada.');
     }
 
+    public function correct(Request $request, Caja $caja): RedirectResponse
+    {
+        $validated = $request->validate([
+            'monto_contado' => ['required', 'numeric', 'min:0', 'max:9999999999.99'],
+            'motivo' => ['required', 'string', 'max:1000'],
+        ]);
+
+        DB::transaction(function () use ($request, $caja, $validated) {
+            $lockedCaja = Caja::query()
+                ->whereKey($caja->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedCaja->estado !== 'cerrada') {
+                throw ValidationException::withMessages([
+                    'caja' => 'Solo se pueden corregir cajas cerradas.',
+                ]);
+            }
+
+            if ($lockedCaja->monto_contado === null) {
+                throw ValidationException::withMessages([
+                    'caja' => 'No se puede corregir un cierre sin monto contado.',
+                ]);
+            }
+
+            $contadoAnterior = round((float) $lockedCaja->monto_contado, 2);
+            $contadoNuevo = round((float) $validated['monto_contado'], 2);
+
+            if ($contadoAnterior === $contadoNuevo) {
+                throw ValidationException::withMessages([
+                    'monto_contado' => 'El nuevo monto debe ser diferente al valor actual.',
+                ]);
+            }
+
+            CajaAjuste::create([
+                'caja_id' => $lockedCaja->id,
+                'usuario_admin_id' => $request->user()->id,
+                'usuario_admin_nombre' => $request->user()->name,
+                'monto_contado_anterior' => $contadoAnterior,
+                'monto_contado_nuevo' => $contadoNuevo,
+                'motivo' => $validated['motivo'],
+            ]);
+
+            $lockedCaja->update([
+                'monto_contado' => $contadoNuevo,
+                'diferencia' => round($contadoNuevo - (float) $lockedCaja->monto_esperado, 2),
+            ]);
+        });
+
+        return redirect()->route('caja.index')->with('success', 'Cierre corregido. El ajuste quedó registrado en el historial.');
+    }
+
     private function presentarCaja(Caja $caja): array
     {
         $ventas = round((float) ($caja->ventas_total ?? 0), 2);
@@ -182,6 +236,15 @@ class CajaController extends Controller
             'diferencia' => $caja->diferencia !== null ? (float) $caja->diferencia : null,
             'abierta_en' => $caja->abierta_en?->format('d/m/Y H:i'),
             'cerrada_en' => $caja->cerrada_en?->format('d/m/Y H:i'),
+            'ajustes' => $caja->relationLoaded('ajustes')
+                ? $caja->ajustes->map(fn (CajaAjuste $ajuste) => [
+                    'usuario_admin_nombre' => $ajuste->usuario_admin_nombre,
+                    'monto_contado_anterior' => (float) $ajuste->monto_contado_anterior,
+                    'monto_contado_nuevo' => (float) $ajuste->monto_contado_nuevo,
+                    'motivo' => $ajuste->motivo,
+                    'fecha' => $ajuste->created_at?->format('d/m/Y H:i'),
+                ])->values()->all()
+                : [],
         ];
     }
 }

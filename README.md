@@ -1,206 +1,220 @@
-# 🛒 PosVenta - Control de ventas, inventario, caja y reportes en un solo lugar
+# Sistema POS
 
-Sistema integral de gestión comercial, punto de venta (POS), control de inventario y administración de roles y usuarios, desarrollado con **Laravel**, **Vue 3**, **Inertia.js** y **Tailwind CSS**.
+Aplicación web de punto de venta y gestión básica. Incluye ventas, control de inventario, caja, domicilios, compras, proveedores, usuarios, configuración de empresa y reportes.
 
----
+## Tecnologías
 
-## 📋 Requisitos del Sistema
+- **Backend:** PHP 8.2 o superior y Laravel 12.
+- **Frontend:** Vue 3, Inertia.js, Tailwind CSS y Vite.
+- **Base de datos:** SQLite por defecto; también hay configuración para MySQL y MariaDB.
+- **Exportaciones:** PDF con Dompdf y Excel `.xlsx`.
+- **Pruebas:** PHPUnit mediante Laravel.
 
-Antes de iniciar la instalación en cualquier computadora, asegúrate de contar con los siguientes programas y versiones instaladas:
+## Requisitos
 
-| Software | Versión Recomendada | Comando para verificar |
-| :--- | :--- | :--- |
-| **PHP** | **8.2** o **8.3** | `php -v` |
-| **Composer** | **2.2+** | `composer -V` |
-| **Node.js** | **18.x**, **20.x** o superior | `node -v` |
-| **NPM** | **9.x** o **10.x** | `npm -v` |
-| **MySQL / MariaDB** | **8.0+** / **10.4+** (XAMPP, Laragon o nativo) | Corriendo en puerto `3306` |
+Instala las herramientas siguientes antes de configurar el proyecto:
 
-### Extensiones PHP Necesarias
-Asegúrate de que en tu archivo `php.ini` estén habilitadas (descomentadas) las siguientes extensiones:
-- `pdo_mysql`
-- `mbstring`
-- `openssl`
-- `tokenizer`
-- `xml`
-- `ctype`
-- `json`
-- `bcmath`
-- `fileinfo`
-- `curl`
+| Herramienta | Requisito |
+| --- | --- |
+| PHP | 8.2 o superior |
+| Composer | Composer 2 |
+| Node.js | 20.19+ o 22.12+ (se recomienda una versión LTS compatible con Vite 7) |
+| npm | Versión incluida con Node.js; compatible con `package-lock.json` |
+| Base de datos | SQLite con `pdo_sqlite` (opción predeterminada) o MySQL/MariaDB con su controlador PDO |
 
----
+Laravel y los paquetes del proyecto también requieren extensiones PHP habituales como `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `fileinfo` y `pdo`. La exportación a Excel requiere `zip`; para MySQL/MariaDB habilita `pdo_mysql`. Composer indicará si falta una extensión requerida.
 
-## 🚀 Guía de Instalación Paso a Paso
+Comprueba las instalaciones:
 
-Sigue estos pasos ordenados en tu terminal (PowerShell o Git Bash):
-
-### 1. Clonar o Ubicar el Proyecto
-Abre tu terminal y ubícate en la carpeta del proyecto:
-```bash
-cd C:\ruta\hacia\posventa\proyecto
+```powershell
+php -v
+composer --version
+node --version
+npm --version
 ```
 
----
+## Instalación local en Windows
 
-### 2. Instalar las dependencias de PHP (Composer)
-Descarga todos los paquetes necesarios del backend:
-```bash
+Abre PowerShell en la carpeta del proyecto y ejecuta:
+
+```powershell
 composer install
+Copy-Item .env.example .env
 ```
 
----
+El archivo `.env.example` usa SQLite. Crea el archivo de base de datos si todavía no existe:
 
-### 3. Instalar las dependencias de Frontend (NPM)
-Descarga las librerías de Vue 3, Inertia y Tailwind CSS:
-```bash
-npm install
+```powershell
+if (-not (Test-Path database\database.sqlite)) {
+    New-Item database\database.sqlite -ItemType File | Out-Null
+}
 ```
 
----
+Genera la clave de Laravel, instala las dependencias del frontend, crea las tablas y carga los roles y usuarios locales:
 
-### 4. Configurar el archivo de entorno (`.env`)
-Copia el archivo de plantilla `.env.example` a `.env`:
-
-* **En Windows (PowerShell):**
-  ```powershell
-  copy .env.example .env
-  ```
-* **En Git Bash / Linux / Mac:**
-  ```bash
-  cp .env.example .env
-  ```
-
-Abre el archivo `.env` y asegúrate de configurar los parámetros de tu base de datos MySQL:
-
-```env
-APP_NAME=PosVenta
-APP_ENV=local
-APP_KEY=
-APP_DEBUG=true
-APP_URL=http://localhost:8000
-
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=postventaerp
-DB_USERNAME=root
-DB_PASSWORD=
-```
-> **Nota:** Si usas contraseña en tu MySQL (ej. root / root), colócala en `DB_PASSWORD`.
-
----
-
-### 5. Crear la Base de Datos en MySQL
-Si la base de datos no existe, créala desde tu gestor de base de datos preferido (phpMyAdmin, DBeaver, HeidiSQL o MySQL CLI):
-
-```sql
-CREATE DATABASE sistema_pos_erp CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
----
-
-### 6. Generar la Llave de la Aplicación
-Genera la clave de encriptación `APP_KEY` requerida por Laravel:
-```bash
+```powershell
 php artisan key:generate
-```
-
----
-
-### 7. Ejecutar Migraciones y Datos de Prueba (Seeders)
-Crea las tablas en la base de datos (`usuarios`, `roles`, `roles_usuarios`, etc.) y registra los roles y usuarios iniciales:
-```bash
+npm ci
 php artisan migrate --seed
-```
-
-### 8. Crear el Enlace Simbólico de Almacenamiento (Storage)
-Para permitir que los logos y archivos cargados se muestren públicamente:
-```bash
 php artisan storage:link
 ```
 
----
+Inicia el entorno local integrado:
 
-### 9. Compilar los Assets de Frontend
-Para compilar los estilos y componentes Vue:
+```powershell
+composer run dev
+```
 
-* **Para entorno de desarrollo (con recarga rápida en vivo):**
-  ```bash
-  npm run dev
-  ```
-* **Para compilar en producción:**
-  ```bash
-  npm run build
-  ```
+Este comando inicia el servidor de Laravel, el worker de colas, los logs y Vite. Abre la URL que indica Laravel, normalmente <http://localhost:8000>. Detén los procesos con `Ctrl+C`.
 
----
+También puedes iniciar los servicios por separado en terminales distintas:
 
-### 10. Iniciar el Servidor de Laravel
-En una ventana de terminal independiente, inicia el servidor de desarrollo de PHP:
-```bash
+```powershell
 php artisan serve
 ```
 
-La aplicación quedará disponible en:
-👉 **`http://localhost:8000`**
+```powershell
+npm run dev
+```
 
----
+Para compilar los recursos estáticos de producción:
 
-## 👥 Usuarios y Credenciales Preconfiguradas
+```powershell
+npm run build
+```
 
-El seeder inicial genera automáticamente los roles y las siguientes cuentas de prueba:
+## Configuración de base de datos
 
-| Rol | Nombre | Correo Electrónico | Contraseña | Permisos y Acceso |
-| :--- | :--- | :--- | :--- | :--- |
-| **Administrador (`admin`)** | Administrador | `admin@posventa.com` | `password` | **Acceso total**: Panel principal, POS Ventas, Inventario, Domicilios, Reportes y Módulo de Configuraciones. |
-| **Administrador (`admin`)** | Administrador | `test@example.com` | `password` | Usuario inicial alternativo con acceso total. |
-| **Vendedor** | Carlos Vendedor | `vendedor@posventa.com` | `password` | **Acceso exclusivo**: Ingresa directamente al Módulo de Ventas (POS). Restringido de dashboards y configuraciones. |
+### SQLite
 
-## 🧭 Estructura de Módulos del Sistema
+SQLite es la configuración predeterminada del proyecto. En `.env`, comprueba que esté seleccionada esta conexión:
 
-1. **Pantalla de Inicio de Sesión (`/login`)**:
-   - Diseño moderno dividido (*split-screen*) con formulario en el lateral izquierdo y panel corporativo púrpura en el lateral derecho.
-   - Botón para ver/ocultar contraseña, validaciones reactivas y redirección automática según el rol asignado.
+```dotenv
+DB_CONNECTION=sqlite
+```
 
-2. **Panel Principal / Dashboard (`/dashboard`)**:
-   - Tarjetas KPI: Ventas del día, productos vendidos, alertas de stock bajo y domicilios.
-   - Gráfico de barras interactivo de ventas por horario nocturno/diurno.
-   - Lista dinámica de alertas de inventario con indicadores de estado (crítico / normal).
+Laravel utiliza `database/database.sqlite` por defecto. Si cambias esa ruta, configura `DB_DATABASE` con la ubicación correspondiente y asegúrate de que el proceso PHP pueda leer y escribir el archivo.
 
-3. **Módulo de Ventas POS (`/ventas`)**:
-   - Catálogo rápido de productos con buscador y categorías.
-   - Carrito de compra reactivo con cálculo automático de totales.
-   - Procesamiento de cobros y tickets.
+### MySQL o MariaDB
 
-4. **Módulo de Configuraciones**:
-   - **Datos de Empresa (`/configuracion/empresa`)**:
-     - Gestión integral de la información básica y comercial: Razón social, Nombre comercial, NIT, Dígito de Verificación (cálculo automático DIAN), dirección completa (País, Departamento, Municipio, Código Postal), teléfono, correo electrónico y sitio web.
-     - Gestión tributaria DIAN: Tipo de persona (Natural / Jurídica), Régimen tributario, selección múltiple de responsabilidades fiscales (O-13, O-15, O-23, O-47, R-99-PN, etc.), actividad económica principal (código CIIU) y detalles adicionales.
-     - Carga, reemplazo y eliminación de logo corporativo con previsualización en vivo.
-     - Integración automática y reactiva en la pantalla de inicio de sesión (`/login`) y en el menú lateral/sidebar de todo el sistema, con fallback predeterminado cuando no hay información configurada.
-   - **Roles y Usuarios (`/configuracion/roles-usuarios`)**:
-     - CRUD completo: Crear nuevos usuarios, editar nombres/correos/contraseñas y asignar o remover roles del sistema mediante la tabla pivote `roles_usuarios`.
-     - Protección contra auto-eliminación de cuenta activa.
+Primero crea una base de datos vacía, por ejemplo:
 
+```sql
+CREATE DATABASE licorestito
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
+```
 
----
+Luego configura las variables de conexión en `.env`:
 
-## 🛠️ Comandos de Mantenimiento y Solución de Problemas
+```dotenv
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=licorestito
+DB_USERNAME=tu_usuario
+DB_PASSWORD=tu_contraseña
+```
 
-### Limpiar Caché de la Aplicación
-Si realizas cambios en rutas, configuraciones o vistas y no se reflejan:
-```bash
+Habilita `pdo_mysql` en PHP y ejecuta las migraciones:
+
+```powershell
+php artisan migrate --seed
+```
+
+No subas `.env` ni credenciales reales al repositorio.
+
+## Roles y acceso
+
+El sistema asigna los siguientes roles:
+
+- **Administrador (`admin`):** acceso al panel, operación POS, inventario, caja, domicilios, compras, proveedores, reportes y configuración.
+- **Vendedor (`vendedor`):** acceso al POS, su caja, consulta de inventario y seguimiento de sus domicilios. No puede administrar productos, compras, reportes ni configuración.
+
+El registro público crea usuarios con rol de vendedor. Las rutas operativas están protegidas por autenticación, verificación de correo y control de rol, según el módulo.
+
+El seeder crea estas cuentas de desarrollo:
+
+| Rol | Correo | Contraseña inicial |
+| --- | --- | --- |
+| Administrador | `admin@posventa.com` | `password` |
+| Vendedor | `vendedor@posventa.com` | `password` |
+
+Estas credenciales son únicamente para desarrollo local. 
+
+## Módulos disponibles
+
+### Panel principal
+
+Presenta indicadores del día o de la semana: ventas y transacciones, unidades vendidas, productos con stock bajo y domicilios. Incluye el resumen gráfico de ventas y una lista de productos que requieren atención.
+
+### Ventas POS
+
+Permite consultar productos y categorías, armar una venta y generar su comprobante. La venta requiere una caja abierta y valida el stock disponible. Se puede registrar como venta de mostrador o domicilio; este último tipo guarda los datos del cliente, la dirección, el costo del domicilio y su estado inicial.
+
+### Inventario
+
+Administra productos, categorías y existencias. Los ajustes y las ventas generan movimientos de inventario. El vendedor puede consultar productos; las operaciones de administración de catálogo y ajustes están reservadas al administrador.
+
+### Caja
+
+Cada usuario puede abrir y cerrar su caja. El cierre registra efectivo esperado, efectivo contado y diferencia. El administrador también dispone de una operación para corregir cierres, protegida por rol.
+
+### Domicilios
+
+Permite consultar y actualizar el estado de los domicilios propios. El listado se filtra por el usuario autenticado; el vendedor solo gestiona sus pedidos y el administrador también puede acceder a sus propios registros.
+
+### Compras y proveedores
+
+El administrador puede gestionar proveedores y registrar compras con productos, cantidades y costos. Las compras nuevas quedan pendientes: el inventario aumenta al recibirlas, no al registrarlas.
+
+### Reportes
+
+El módulo administrativo consulta **ventas, inventario, compras, caja y domicilios** por rango de fechas. Presenta indicadores, detalle y gráficos basados en registros existentes. Ofrece descarga en PDF y Excel; el PDF incluye el análisis y las recomendaciones calculadas con los datos disponibles.
+
+### Configuración
+
+El administrador puede gestionar usuarios y roles y mantener la información comercial y tributaria de la empresa, incluido el logo. Para que el logo almacenado en el disco público sea accesible, crea el enlace con `php artisan storage:link`.
+
+## Pruebas y mantenimiento
+
+Ejecuta la suite de pruebas:
+
+```powershell
+php artisan test
+```
+
+El entorno de PHPUnit usa una base de datos SQLite en memoria y no modifica la base de datos de desarrollo.
+
+Para borrar cachés de configuración, rutas, vistas y otros datos optimizados:
+
+```powershell
 php artisan optimize:clear
 ```
 
-### Error de Conexión a la Base de Datos (`Access Denied` / `Unknown Database`)
-1. Verifica que el servicio de MySQL esté corriendo (ej. botón verde en XAMPP).
-2. Comprueba que el nombre de la base de datos en el archivo `.env` (`postventaerp`) exista en MySQL.
-3. Verifica que el usuario `root` y la contraseña coincidan con tu servidor local.
+Después de cambiar dependencias del frontend, instala las fijadas en el lockfile con `npm ci`. Para reconstruir los recursos:
 
-### Enlace simbólico de almacenamiento (Storage)
-Para habilitar la carga y visualización de archivos públicos:
-```bash
-php artisan storage:link
+```powershell
+npm run build
+```
+
+## Estructura principal
+
+```text
+app/
+  Http/Controllers/   Controladores y lógica de los módulos
+  Http/Middleware/    Autenticación y autorización por rol
+  Models/             Modelos de datos
+database/
+  migrations/         Esquema de la base de datos
+  seeders/            Roles y cuentas iniciales de desarrollo
+resources/
+  js/Pages/           Páginas Vue/Inertia
+  views/              Vistas Blade, incluido el PDF de reportes
+routes/
+  web.php             Rutas web y permisos
+  auth.php            Rutas de autenticación
+tests/
+  Feature/            Pruebas de funcionalidades
+  Unit/               Pruebas unitarias
 ```

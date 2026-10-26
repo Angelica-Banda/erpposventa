@@ -240,6 +240,130 @@ class CajaTest extends TestCase
                 ->where('resumenCierres', null));
     }
 
+    public function test_admin_can_correct_counted_cash_and_audit_the_change(): void
+    {
+        $admin = $this->createUserWithRole('admin');
+        $vendedor = $this->createUserWithRole();
+        $caja = Caja::create([
+            'usuario_id' => $vendedor->id,
+            'usuario_nombre' => $vendedor->name,
+            'monto_inicial' => 10,
+            'monto_esperado' => 50,
+            'monto_contado' => 48,
+            'diferencia' => -2,
+            'estado' => 'cerrada',
+            'abierta_en' => now()->subHours(8),
+            'cerrada_en' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->patch(route('caja.correcciones.update', $caja), [
+                'monto_contado' => 55,
+                'motivo' => 'Se digitó mal el efectivo contado.',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('success')
+            ->assertRedirect(route('caja.index'));
+
+        $this->assertSame('50.00', $caja->fresh()->monto_esperado);
+        $this->assertSame('55.00', $caja->fresh()->monto_contado);
+        $this->assertSame('5.00', $caja->fresh()->diferencia);
+        $this->assertDatabaseHas('caja_ajustes', [
+            'caja_id' => $caja->id,
+            'usuario_admin_id' => $admin->id,
+            'usuario_admin_nombre' => $admin->name,
+            'monto_contado_anterior' => 48,
+            'monto_contado_nuevo' => 55,
+            'motivo' => 'Se digitó mal el efectivo contado.',
+        ]);
+
+        $this->get(route('caja.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('reporteCierres.data.0.monto_esperado', 50)
+                ->where('reporteCierres.data.0.monto_contado', 55)
+                ->where('reporteCierres.data.0.diferencia', 5)
+                ->where('reporteCierres.data.0.ajustes.0.monto_contado_anterior', 48)
+                ->where('resumenCierres.monto_esperado', 50)
+                ->where('resumenCierres.monto_contado', 55)
+                ->where('resumenCierres.diferencia', 5));
+    }
+
+    public function test_only_admin_can_correct_closed_cash_and_reason_is_required(): void
+    {
+        $admin = $this->createUserWithRole('admin');
+        $vendedor = $this->createUserWithRole();
+        $caja = Caja::create([
+            'usuario_id' => $vendedor->id,
+            'usuario_nombre' => $vendedor->name,
+            'monto_inicial' => 10,
+            'monto_esperado' => 50,
+            'monto_contado' => 48,
+            'diferencia' => -2,
+            'estado' => 'cerrada',
+            'abierta_en' => now()->subHours(8),
+            'cerrada_en' => now(),
+        ]);
+
+        $this->actingAs($vendedor)
+            ->patch(route('caja.correcciones.update', $caja), [
+                'monto_contado' => 55,
+                'motivo' => 'Ajuste',
+            ])
+            ->assertRedirect(route('ventas.index'));
+
+        $this->assertSame('50.00', $caja->fresh()->monto_esperado);
+        $this->assertDatabaseCount('caja_ajustes', 0);
+
+        $this->actingAs($admin)
+            ->from(route('caja.index'))
+            ->patch(route('caja.correcciones.update', $caja), [
+                'monto_contado' => 55,
+            ])
+            ->assertSessionHasErrors('motivo');
+
+        $this->assertSame('50.00', $caja->fresh()->monto_esperado);
+        $this->assertSame('48.00', $caja->fresh()->monto_contado);
+        $this->assertDatabaseCount('caja_ajustes', 0);
+
+        $this->actingAs($admin)
+            ->from(route('caja.index'))
+            ->patch(route('caja.correcciones.update', $caja), [
+                'monto_contado' => 48,
+                'motivo' => 'No debe ser igual al valor actual.',
+            ])
+            ->assertSessionHasErrors('monto_contado')
+            ->assertRedirect(route('caja.index'));
+
+        $this->assertSame('50.00', $caja->fresh()->monto_esperado);
+        $this->assertSame('48.00', $caja->fresh()->monto_contado);
+        $this->assertDatabaseCount('caja_ajustes', 0);
+    }
+
+    public function test_admin_cannot_correct_an_open_cash_register(): void
+    {
+        $admin = $this->createUserWithRole('admin');
+        $caja = Caja::create([
+            'usuario_id' => $admin->id,
+            'usuario_nombre' => $admin->name,
+            'monto_inicial' => 10,
+            'estado' => 'abierta',
+            'abierta_en' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('caja.index'))
+            ->patch(route('caja.correcciones.update', $caja), [
+                'monto_contado' => 55,
+                'motivo' => 'Ajuste',
+            ])
+            ->assertSessionHasErrors('caja')
+            ->assertRedirect(route('caja.index'));
+
+        $this->assertSame('abierta', $caja->fresh()->estado);
+        $this->assertDatabaseCount('caja_ajustes', 0);
+    }
+
     private function createUserWithRole(string $roleName = 'vendedor'): Usuario
     {
         $usuario = Usuario::factory()->create();

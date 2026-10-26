@@ -34,12 +34,28 @@ class AuthenticationTest extends TestCase
     {
         $usuario = Usuario::factory()->create();
 
-        $this->post('/login', [
+        $response = $this->from('/login')->post('/login', [
             'email' => $usuario->email,
             'password' => 'wrong-password',
         ]);
 
         $this->assertGuest();
+        $response->assertSessionHasErrors([
+            'email' => 'El correo electrónico o la contraseña son incorrectos.',
+        ]);
+    }
+
+    public function test_login_validation_errors_are_in_spanish(): void
+    {
+        $response = $this->from('/login')->post('/login', [
+            'email' => '',
+            'password' => '',
+        ]);
+
+        $response->assertSessionHasErrors([
+            'email' => 'El campo correo electrónico es obligatorio.',
+            'password' => 'El campo contraseña es obligatorio.',
+        ]);
     }
 
     public function test_users_can_logout(): void

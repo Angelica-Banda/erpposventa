@@ -58,7 +58,7 @@ class EmpresaController extends Controller
             'detalles_tributarios' => ['nullable', 'string', 'max:1000'],
 
             // Archivo de logo
-            'logo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp,svg', 'max:2048'],
+            'logo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
             'eliminar_logo' => ['nullable', 'boolean'],
         ], [
             'razon_social.required' => 'La razón social es obligatoria.',

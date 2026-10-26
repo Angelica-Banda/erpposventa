@@ -24,7 +24,7 @@ class CompraTest extends TestCase
         $producto = $this->createProduct();
 
         $this->actingAs($admin)
-            ->post(route('proveedores.compras.store'), [
+            ->post(route('inventario.compras.store'), [
                 'proveedor_id' => $proveedor->id,
                 'detalles' => [[
                     'producto_id' => $producto->id,
@@ -33,7 +33,7 @@ class CompraTest extends TestCase
                 ]],
             ])
             ->assertSessionHasNoErrors()
-            ->assertRedirect(route('proveedores.index'));
+            ->assertRedirect(route('inventario.index', ['tab' => 'compras']));
 
         $compra = Compra::with('detalles')->firstOrFail();
         $producto->refresh();
@@ -43,9 +43,9 @@ class CompraTest extends TestCase
         $this->assertSame('7.00', $producto->precio_compra);
         $this->assertDatabaseCount('movimientos_inventario', 0);
 
-        $this->post(route('proveedores.compras.receive', $compra))
+        $this->post(route('inventario.compras.receive', $compra))
             ->assertSessionHasNoErrors()
-            ->assertRedirect(route('proveedores.index'));
+            ->assertRedirect(route('inventario.index', ['tab' => 'compras']));
 
         $compra->refresh();
         $producto->refresh();
@@ -62,10 +62,10 @@ class CompraTest extends TestCase
             'diferencia' => 3,
         ]);
 
-        $this->from(route('proveedores.index'))
-            ->post(route('proveedores.compras.receive', $compra))
+        $this->from(route('inventario.index', ['tab' => 'compras']))
+            ->post(route('inventario.compras.receive', $compra))
             ->assertSessionHasErrors('compra')
-            ->assertRedirect(route('proveedores.index'));
+            ->assertRedirect(route('inventario.index', ['tab' => 'compras']));
 
         $this->assertSame(8, $producto->fresh()->stock);
         $this->assertDatabaseCount('movimientos_inventario', 1);
@@ -112,25 +112,26 @@ class CompraTest extends TestCase
         ]);
 
         $filters = [
-            'busqueda' => 'Proveedor de paginación',
-            'estado' => 'pendiente',
-            'desde' => now()->toDateString(),
-            'hasta' => now()->toDateString(),
+            'compra_busqueda' => 'Proveedor de paginación',
+            'compra_estado' => 'pendiente',
+            'compra_desde' => now()->toDateString(),
+            'compra_hasta' => now()->toDateString(),
+            'tab' => 'compras',
         ];
 
         $this->actingAs($admin)
-            ->get(route('proveedores.index', $filters))
+            ->get(route('inventario.index', $filters))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('Proveedores/Index')
+                ->component('Inventario/Index')
                 ->where('compras.total', 17)
                 ->where('compras.per_page', 15)
                 ->where('compras.current_page', 1)
                 ->has('compras.data', 15)
-                ->where('filters.busqueda', 'Proveedor de paginación')
-                ->where('filters.estado', 'pendiente'));
+                ->where('comprasFilters.busqueda', 'Proveedor de paginación')
+                ->where('comprasFilters.estado', 'pendiente'));
 
-        $this->get(route('proveedores.index', [...$filters, 'page' => 2]))
+        $this->get(route('inventario.index', [...$filters, 'compras_page' => 2]))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('compras.current_page', 2)
@@ -157,7 +158,7 @@ class CompraTest extends TestCase
         ]);
 
         $this->actingAs($admin)
-            ->get(route('proveedores.compras.receipt', $compra))
+            ->get(route('inventario.compras.receipt', $compra))
             ->assertNotFound();
 
         $compra->update([
@@ -165,7 +166,7 @@ class CompraTest extends TestCase
             'recibida_en' => now(),
         ]);
 
-        $this->get(route('proveedores.compras.receipt', $compra))
+        $this->get(route('inventario.compras.receipt', $compra))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Proveedores/Comprobante')

@@ -58,6 +58,7 @@ Route::middleware(['auth', 'verified', 'rol:vendedor,admin'])->group(function ()
 
 // Compras y proveedores: exclusivo para admin
 Route::middleware(['auth', 'verified', 'rol:admin'])->group(function () {
+    Route::patch('/caja/{caja}/corregir-cierre', [CajaController::class, 'correct'])->name('caja.correcciones.update');
     Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
     Route::get('/reportes/exportar/{formato}', [ReporteController::class, 'export'])
         ->whereIn('formato', ['pdf', 'excel'])
@@ -66,10 +67,6 @@ Route::middleware(['auth', 'verified', 'rol:admin'])->group(function () {
     Route::post('/proveedores', [ProveedorController::class, 'store'])->name('proveedores.store');
     Route::put('/proveedores/{proveedor}', [ProveedorController::class, 'update'])->name('proveedores.update');
     Route::delete('/proveedores/{proveedor}', [ProveedorController::class, 'destroy'])->name('proveedores.destroy');
-    Route::post('/proveedores/compras', [CompraController::class, 'store'])->name('proveedores.compras.store');
-    Route::get('/proveedores/compras/{compra}/comprobante', [CompraController::class, 'receipt'])->name('proveedores.compras.receipt');
-    Route::post('/proveedores/compras/{compra}/recibir', [CompraController::class, 'receive'])->name('proveedores.compras.receive');
-
     Route::post('/inventario/compras', [CompraController::class, 'store'])->name('inventario.compras.store');
     Route::post('/inventario/compras/{compra}/recibir', [CompraController::class, 'receive'])->name('inventario.compras.receive');
     Route::get('/inventario/compras/{compra}/comprobante', [CompraController::class, 'receipt'])->name('inventario.compras.receipt');

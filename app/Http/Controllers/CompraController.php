@@ -93,8 +93,7 @@ class CompraController extends Controller
             return $compra;
         });
 
-        $redirectTarget = url()->previous() ?: route('inventario.index');
-        return redirect()->to($redirectTarget)
+        return redirect()->route('inventario.index', ['tab' => 'compras'])
             ->with('success', 'Compra #'.$compra->id.' registrada como pendiente. El stock cambiará al recibirla.');
     }
 
@@ -169,8 +168,7 @@ class CompraController extends Controller
             ]);
         });
 
-        $redirectTarget = url()->previous() ?: route('inventario.index');
-        return redirect()->to($redirectTarget)
+        return redirect()->route('inventario.index', ['tab' => 'compras'])
             ->with('success', 'Compra #'.$compra->id.' recibida. El stock y el último costo de compra fueron actualizados.');
     }
 

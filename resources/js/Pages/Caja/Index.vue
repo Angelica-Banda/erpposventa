@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { reactive } from 'vue';
+import { reactive, ref } from 'vue';
 
 const props = defineProps({
     cajaAbierta: {
@@ -43,6 +43,12 @@ const cierreForm = useForm({
     monto_contado: 0,
 });
 
+const cajaCorreccionSeleccionada = ref(null);
+const correccionForm = useForm({
+    monto_contado: 0,
+    motivo: '',
+});
+
 const formatCurrency = (amount) => new Intl.NumberFormat('es-CO', {
     style: 'currency',
     currency: 'COP',
@@ -62,6 +68,32 @@ const cerrarCaja = (caja) => {
 
     cierreForm.post(route('caja.close', caja.id), {
         onSuccess: () => cierreForm.reset('monto_contado'),
+    });
+};
+
+const alternarCorreccionCaja = (caja) => {
+    if (cajaCorreccionSeleccionada.value === caja.id) {
+        cajaCorreccionSeleccionada.value = null;
+        return;
+    }
+
+    cajaCorreccionSeleccionada.value = caja.id;
+    correccionForm.reset();
+    correccionForm.clearErrors();
+    correccionForm.monto_contado = Number(caja.monto_contado);
+};
+
+const corregirCaja = (caja) => {
+    if (!confirm(`¿Confirmas corregir el efectivo contado de la caja #${caja.id}? La diferencia del cierre también se actualizará.`)) {
+        return;
+    }
+
+    correccionForm.patch(route('caja.correcciones.update', caja.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            cajaCorreccionSeleccionada.value = null;
+            correccionForm.reset();
+        },
     });
 };
 
@@ -260,7 +292,7 @@ const limpiarFiltros = () => {
             </dl>
 
             <div v-if="reporteCierres?.data?.length" class="overflow-x-auto">
-                <table class="w-full min-w-[900px] text-left text-sm">
+                <table class="w-full min-w-[1050px] text-left text-sm">
                     <thead class="border-b border-slate-100 bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                         <tr>
                             <th class="px-5 py-4">Usuario</th>
@@ -271,10 +303,12 @@ const limpiarFiltros = () => {
                             <th class="px-5 py-4">Contado</th>
                             <th class="px-5 py-4">Diferencia</th>
                             <th class="px-5 py-4">Cierre</th>
+                            <th class="px-5 py-4">Acciones</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                        <tr v-for="caja in reporteCierres.data" :key="caja.id">
+                        <template v-for="caja in reporteCierres.data" :key="caja.id">
+                        <tr>
                             <td class="px-5 py-4 font-semibold text-slate-800">{{ caja.usuario_nombre }}</td>
                             <td class="px-5 py-4 text-slate-600">#{{ caja.id }}</td>
                             <td class="px-5 py-4 text-slate-600">{{ formatCurrency(caja.monto_inicial) }}</td>
@@ -285,7 +319,48 @@ const limpiarFiltros = () => {
                                 {{ caja.diferencia > 0 ? '+' : '' }}{{ formatCurrency(caja.diferencia) }}
                             </td>
                             <td class="px-5 py-4 text-slate-500">{{ caja.cerrada_en }}</td>
+                            <td class="px-5 py-4">
+                                <button type="button" @click="alternarCorreccionCaja(caja)" class="whitespace-nowrap rounded-lg border border-purple-200 px-3 py-2 text-xs font-bold text-purple-700 hover:bg-purple-50">
+                                    {{ cajaCorreccionSeleccionada === caja.id ? 'Cerrar detalle' : 'Corregir / historial' }}
+                                </button>
+                            </td>
                         </tr>
+                        <tr v-if="cajaCorreccionSeleccionada === caja.id" :key="`ajustes-${caja.id}`" class="bg-purple-50/50">
+                            <td colspan="9" class="px-5 py-5">
+                                <div class="grid gap-6 lg:grid-cols-2">
+                                    <form @submit.prevent="corregirCaja(caja)" class="space-y-3">
+                                        <h3 class="font-bold text-slate-900">Corregir efectivo contado · Caja #{{ caja.id }}</h3>
+                                        <p class="text-xs text-slate-500">El monto esperado se conserva y la diferencia se recalcula. Debes indicar el motivo; el cambio quedará auditado.</p>
+                                        <div>
+                                            <label :for="`counted-${caja.id}`" class="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-500">Nuevo efectivo contado</label>
+                                            <input :id="`counted-${caja.id}`" v-model.number="correccionForm.monto_contado" type="number" min="0" max="9999999999.99" step="0.01" required class="w-full rounded-xl border-slate-200 bg-white text-sm focus:border-purple-400 focus:ring-purple-500" />
+                                            <p v-if="correccionForm.errors.monto_contado" class="mt-1 text-xs text-rose-600">{{ correccionForm.errors.monto_contado }}</p>
+                                        </div>
+                                        <div>
+                                            <label :for="`reason-${caja.id}`" class="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-500">Motivo de la corrección</label>
+                                            <textarea :id="`reason-${caja.id}`" v-model="correccionForm.motivo" maxlength="1000" required rows="2" class="w-full rounded-xl border-slate-200 bg-white text-sm focus:border-purple-400 focus:ring-purple-500" placeholder="Ej.: se digitó mal el efectivo contado" />
+                                            <p v-if="correccionForm.errors.motivo" class="mt-1 text-xs text-rose-600">{{ correccionForm.errors.motivo }}</p>
+                                            <p v-if="correccionForm.errors.caja" class="mt-1 text-xs text-rose-600">{{ correccionForm.errors.caja }}</p>
+                                        </div>
+                                        <button type="submit" :disabled="correccionForm.processing" class="rounded-xl bg-purple-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-purple-800 disabled:opacity-60">
+                                            {{ correccionForm.processing ? 'Guardando…' : 'Guardar corrección' }}
+                                        </button>
+                                    </form>
+                                    <div>
+                                        <h3 class="font-bold text-slate-900">Historial de correcciones</h3>
+                                        <ul v-if="caja.ajustes?.length" class="mt-3 space-y-3">
+                                            <li v-for="(ajuste, index) in caja.ajustes" :key="`${caja.id}-${index}`" class="rounded-xl border border-purple-100 bg-white p-3 text-xs">
+                                                <p class="font-bold text-slate-800">{{ ajuste.fecha }} · {{ ajuste.usuario_admin_nombre }}</p>
+                                                <p class="mt-1 text-slate-600">Contado: {{ formatCurrency(ajuste.monto_contado_anterior) }} → {{ formatCurrency(ajuste.monto_contado_nuevo) }}</p>
+                                                <p class="mt-1 text-slate-500">{{ ajuste.motivo }}</p>
+                                            </li>
+                                        </ul>
+                                        <p v-else class="mt-3 text-sm text-slate-500">Esta caja no tiene correcciones anteriores.</p>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        </template>
                     </tbody>
                 </table>
                 <div class="flex items-center justify-between border-t border-slate-100 px-5 py-4">

@@ -3,7 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Caja;
+use App\Models\Categoria;
 use App\Models\Compra;
+use App\Models\DetalleCompra;
+use App\Models\DetalleVenta;
+use App\Models\Producto;
 use App\Models\MovimientoInventario;
 use App\Models\Proveedor;
 use App\Models\Rol;
@@ -180,6 +184,115 @@ class ReporteTest extends TestCase
             ->assertSessionHasErrors('hasta');
     }
 
+    public function test_report_charts_use_real_data_for_each_report_and_respect_date_filters(): void
+    {
+        $admin = $this->createUserWithRole('admin');
+        $hoy = now();
+        $ayer = now()->subDay();
+        $producto = Producto::create([
+            'categoria_id' => Categoria::create(['nombre' => 'Categoría de reportes'])->id,
+            'codigo' => 'CHART-001',
+            'nombre' => 'Producto gráfico',
+            'precio_compra' => 20,
+            'precio_venta' => 35,
+            'stock' => 2,
+            'stock_minimo' => 5,
+            'activo' => true,
+        ]);
+        $ventaActual = $this->createSale($admin, 70, 'mostrador', $hoy);
+        DetalleVenta::create([
+            'venta_id' => $ventaActual->id,
+            'producto_id' => $producto->id,
+            'producto_codigo' => $producto->codigo,
+            'producto_nombre' => $producto->nombre,
+            'cantidad' => 2,
+            'precio_unitario' => 35,
+            'subtotal' => 70,
+        ]);
+        $this->createSale($admin, 300, 'mostrador', $ayer);
+        $proveedor = Proveedor::create(['nombre' => 'Proveedor gráfico']);
+        $compra = Compra::create([
+            'proveedor_id' => $proveedor->id,
+            'usuario_id' => $admin->id,
+            'proveedor_nombre' => $proveedor->nombre,
+            'estado' => 'pendiente',
+            'total' => 90,
+            'created_at' => $hoy,
+            'updated_at' => $hoy,
+        ]);
+        DetalleCompra::create([
+            'compra_id' => $compra->id,
+            'producto_id' => $producto->id,
+            'producto_codigo' => $producto->codigo,
+            'producto_nombre' => $producto->nombre,
+            'cantidad' => 3,
+            'precio_unitario' => 30,
+            'subtotal' => 90,
+        ]);
+        Caja::create([
+            'usuario_id' => $admin->id,
+            'usuario_nombre' => $admin->name,
+            'monto_inicial' => 20,
+            'monto_esperado' => 100,
+            'monto_contado' => 95,
+            'diferencia' => -5,
+            'estado' => 'cerrada',
+            'abierta_en' => $hoy->copy()->subHours(8),
+            'cerrada_en' => $hoy,
+        ]);
+        $this->createSale($admin, 40, 'domicilio', $hoy);
+
+        $this->actingAs($admin);
+        $filtros = ['desde' => $hoy->toDateString(), 'hasta' => $hoy->toDateString()];
+
+        $this->get(route('reportes.index', [...$filtros, 'reporte' => 'ventas']))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('analisis.graficos.0.titulo', 'Evolución de ventas')
+                ->where('analisis.graficos.0.series.0.valores.0', 110)
+                ->where('analisis.graficos.1.series.0.valores.0', 2)
+                ->where('analisis.graficos.2.series.0.valores.0', 1)
+                ->where('analisis.graficos.2.series.0.valores.1', 1)
+                ->where('analisis.comparacion.disponible', true)
+                ->where('analisis.comparacion.anterior', 300));
+
+        $this->get(route('reportes.index', [...$filtros, 'reporte' => 'inventario']))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('analisis.graficos.0.titulo', 'Stock actual bajo o mínimo (stock actual y mínimo configurado)')
+                ->where('analisis.graficos.0.series.0.valores.0', 2)
+                ->where('analisis.graficos.1.series.0.valores.0', 2));
+
+        $this->get(route('reportes.index', [...$filtros, 'reporte' => 'compras']))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('analisis.graficos.0.titulo', 'Evolución de compras')
+                ->where('analisis.graficos.0.series.0.valores.0', 90)
+                ->where('analisis.graficos.1.etiquetas.0', $proveedor->nombre)
+                ->where('analisis.detalle_productos.0.cantidad', 3));
+
+        $this->get(route('reportes.index', [...$filtros, 'reporte' => 'caja']))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('analisis.graficos.0.series.0.valores.0', 100)
+                ->where('analisis.graficos.0.series.1.valores.0', 95)
+                ->where('analisis.graficos.0.series.2.valores.0', -5));
+
+        $this->get(route('reportes.index', [...$filtros, 'reporte' => 'domicilios']))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('analisis.graficos.0.etiquetas.0', 'Pendiente')
+                ->where('analisis.graficos.0.series.0.valores.0', 1)
+                ->where('analisis.graficos.1.series.1.valores.0', 1));
+    }
+
+    public function test_reports_show_no_data_when_a_period_has_no_chartable_records(): void
+    {
+        $admin = $this->createUserWithRole('admin');
+        $fecha = now()->subYears(3)->toDateString();
+
+        $this->actingAs($admin)
+            ->get(route('reportes.index', ['reporte' => 'ventas', 'desde' => $fecha, 'hasta' => $fecha]))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('analisis.graficos', [])
+                ->where('analisis.comparacion.disponible', false));
+    }
+
     public function test_admin_can_download_pdf_and_complete_excel_for_selected_report_and_dates(): void
     {
         $admin = $this->createUserWithRole('admin');
@@ -219,6 +332,14 @@ class ReporteTest extends TestCase
             $contenido = $zip->getFromName('xl/worksheets/sheet1.xml');
             $this->assertIsString($contenido);
             $this->assertSame(23, substr_count($contenido, '<row r='));
+            $this->assertStringContainsString('s="1"', $contenido);
+            $analisisExcel = $zip->getFromName('xl/worksheets/sheet2.xml');
+            $graficosExcel = $zip->getFromName('xl/worksheets/sheet3.xml');
+            $this->assertIsString($analisisExcel);
+            $this->assertIsString($graficosExcel);
+            $this->assertStringContainsString('Resumen ejecutivo', $analisisExcel);
+            $this->assertStringContainsString('Evolución de ventas', $graficosExcel);
+            $this->assertIsString($zip->getFromName('xl/styles.xml'));
             $this->assertStringContainsString((string) $ultimoRegistro->id, $contenido);
             $this->assertStringNotContainsString('999', $contenido);
         } finally {

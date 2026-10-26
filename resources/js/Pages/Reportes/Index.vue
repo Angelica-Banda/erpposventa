@@ -20,6 +20,10 @@ const props = defineProps({
         type: Object,
         default: () => ({ data: [], current_page: 1, last_page: 1, total: 0 }),
     },
+    analisis: {
+        type: Object,
+        default: () => null,
+    },
 });
 
 const filtros = reactive({
@@ -61,6 +65,20 @@ const formatoResumen = (item) => {
         return formatoMoneda(item.value);
     }
     return item.value;
+};
+
+const formatoGrafico = (valor, formato) => formato === 'currency'
+    ? formatoMoneda(valor)
+    : new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(Number(valor || 0));
+
+const maximoGrafico = (grafico) => Math.max(
+    1,
+    ...grafico.series.flatMap((serie) => serie.valores.map((valor) => Math.abs(Number(valor || 0)))),
+);
+
+const anchoBarra = (valor, grafico) => {
+    const cantidad = Math.abs(Number(valor || 0));
+    return cantidad ? `${Math.max(2, (cantidad / maximoGrafico(grafico)) * 100)}%` : '0%';
 };
 </script>
 
@@ -108,6 +126,45 @@ const formatoResumen = (item) => {
                 <p class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ item.label }}</p>
                 <p :class="index === 0 ? 'text-purple-800' : 'text-slate-900'" class="mt-2 text-2xl font-extrabold">{{ formatoResumen(item) }}</p>
             </div>
+        </section>
+
+        <section v-if="analisis" class="mb-6 rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
+            <div class="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-wider text-purple-600">Análisis visual</p>
+                    <h2 class="mt-1 text-xl font-extrabold text-slate-900">{{ reportes.find((reporte) => reporte.id === reporteActual)?.nombre || 'Reporte' }} del período</h2>
+                </div>
+                <p class="text-xs font-medium text-slate-500">{{ filtros.desde }} al {{ filtros.hasta }}</p>
+            </div>
+
+            <div v-if="analisis.graficos.length" class="grid gap-4 xl:grid-cols-2">
+                <article v-for="(grafico, chartIndex) in analisis.graficos" :key="`${reporteActual}-${chartIndex}`" class="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                    <h3 class="mb-4 text-sm font-bold text-slate-800">{{ grafico.titulo }}</h3>
+                    <div class="mb-3 flex flex-wrap gap-x-4 gap-y-2">
+                        <span v-for="(serie, seriesIndex) in grafico.series" :key="serie.nombre" class="inline-flex items-center gap-2 text-[11px] font-semibold text-slate-600">
+                            <span class="h-2.5 w-2.5 rounded-sm" :class="seriesIndex % 3 === 0 ? 'bg-purple-600' : seriesIndex % 3 === 1 ? 'bg-teal-500' : 'bg-amber-500'"></span>
+                            {{ serie.nombre }}
+                        </span>
+                    </div>
+                    <div v-if="grafico.etiquetas.length" class="space-y-3">
+                        <div v-for="(etiqueta, labelIndex) in grafico.etiquetas" :key="`${chartIndex}-${labelIndex}`" class="grid gap-2 sm:grid-cols-[minmax(6rem,0.8fr)_minmax(0,2fr)] sm:items-center">
+                            <p class="break-words text-xs font-medium text-slate-600">{{ etiqueta }}</p>
+                            <div class="space-y-1.5">
+                                <div v-for="(serie, seriesIndex) in grafico.series" :key="`${chartIndex}-${seriesIndex}-${labelIndex}`" class="flex items-center gap-2">
+                                    <div class="h-2.5 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-200">
+                                        <div class="h-full rounded-full" :class="seriesIndex % 3 === 0 ? 'bg-purple-600' : seriesIndex % 3 === 1 ? 'bg-teal-500' : 'bg-amber-500'" :style="{ width: anchoBarra(serie.valores[labelIndex], grafico) }"></div>
+                                    </div>
+                                    <span class="w-24 shrink-0 text-right text-[11px] font-semibold tabular-nums text-slate-700">{{ formatoGrafico(serie.valores[labelIndex], grafico.formato) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p v-else class="text-sm text-slate-500">No hay datos suficientes para este gráfico en el período seleccionado.</p>
+                </article>
+            </div>
+            <p v-else class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center text-sm text-slate-500">
+                No hay datos suficientes para generar gráficos en este período.
+            </p>
         </section>
 
         <section class="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">

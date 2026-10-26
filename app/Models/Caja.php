@@ -43,4 +43,9 @@ class Caja extends Model
     {
         return $this->hasMany(Venta::class, 'caja_id');
     }
+
+    public function ajustes(): HasMany
+    {
+        return $this->hasMany(CajaAjuste::class, 'caja_id');
+    }
 }

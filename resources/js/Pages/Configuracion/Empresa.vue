@@ -3,6 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
+import municipiosColombia from '@/data/colombia-municipios.json';
 
 const props = defineProps({
     empresa: {
@@ -62,14 +63,16 @@ const regimenesTributarios = [
     'Especial (ESAL / Sin ánimo de lucro)',
 ];
 
-// Departamentos comunes de Colombia
-const departamentosColombia = [
-    'Amazonas', 'Antioquia', 'Arauca', 'Atlántico', 'Bogotá D.C.', 'Bolívar', 'Boyacá',
-    'Caldas', 'Caquetá', 'Casanare', 'Cauca', 'Cesar', 'Chocó', 'Córdoba', 'Cundinamarca',
-    'Guainía', 'Guaviare', 'Huila', 'La Guajira', 'Magdalena', 'Meta', 'Nariño',
-    'Norte de Santander', 'Putumayo', 'Quindío', 'Risaralda', 'San Andrés y Providencia',
-    'Santander', 'Sucre', 'Tolima', 'Valle del Cauca', 'Vaupés', 'Vichada'
-];
+const departamentosColombia = Object.keys(municipiosColombia).sort((a, b) => a.localeCompare(b, 'es'));
+const municipiosDisponibles = computed(() => {
+    const municipios = municipiosColombia[form.departamento] || [];
+
+    if (form.municipio && !municipios.includes(form.municipio)) {
+        return [form.municipio, ...municipios].sort((a, b) => a.localeCompare(b, 'es'));
+    }
+
+    return municipios;
+});
 
 // Cálculo automático de dígito de verificación (Algoritmo Módulo 11 DIAN Colombia)
 const calcularDV = () => {
@@ -409,16 +412,15 @@ const submit = () => {
                             <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                                 Departamento <span class="text-rose-500">*</span>
                             </label>
-                            <input
+                            <select
                                 v-model="form.departamento"
-                                list="lista-departamentos"
                                 required
-                                placeholder="Selecciona o escribe"
+                                @change="form.municipio = ''"
                                 class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-600"
-                            />
-                            <datalist id="lista-departamentos">
-                                <option v-for="dep in departamentosColombia" :key="dep" :value="dep" />
-                            </datalist>
+                            >
+                                <option value="" disabled>Selecciona un departamento</option>
+                                <option v-for="dep in departamentosColombia" :key="dep" :value="dep">{{ dep }}</option>
+                            </select>
                             <InputError class="mt-1" :message="form.errors.departamento" />
                         </div>
 
@@ -427,13 +429,19 @@ const submit = () => {
                             <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                                 Municipio / Ciudad <span class="text-rose-500">*</span>
                             </label>
-                            <input
+                            <select
                                 v-model="form.municipio"
-                                type="text"
                                 required
-                                placeholder="Ej: Medellín"
+                                :disabled="!form.departamento"
                                 class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-600"
-                            />
+                            >
+                                <option value="" disabled>
+                                    {{ form.departamento ? 'Selecciona un municipio' : 'Primero selecciona un departamento' }}
+                                </option>
+                                <option v-for="municipio in municipiosDisponibles" :key="municipio" :value="municipio">
+                                    {{ municipio }}
+                                </option>
+                            </select>
                             <InputError class="mt-1" :message="form.errors.municipio" />
                         </div>
 
@@ -644,7 +652,7 @@ const submit = () => {
                             <input
                                 ref="logoInput"
                                 type="file"
-                                accept="image/png, image/jpeg, image/jpg, image/webp, image/svg+xml"
+                                accept="image/png, image/jpeg, image/jpg, image/webp"
                                 @change="handleLogoChange"
                                 class="hidden"
                             />
@@ -656,7 +664,7 @@ const submit = () => {
                             <div class="p-5 rounded-2xl bg-purple-50/60 border border-purple-100">
                                 <h3 class="text-xs font-bold text-purple-900 uppercase tracking-wider mb-1.5">Recomendaciones del archivo</h3>
                                 <ul class="text-xs text-purple-800/80 space-y-1 list-disc list-inside font-medium">
-                                    <li>Formatos soportados: <strong>PNG (con fondo transparente recomendado)</strong>, SVG, JPG, WEBP.</li>
+                                    <li>Formatos soportados: <strong>PNG (con fondo transparente recomendado)</strong>, JPG, WEBP.</li>
                                     <li>Tamaño máximo permitido: <strong>2 Megabytes (MB)</strong>.</li>
                                     <li>Resolución recomendada: <strong>512x512 píxeles</strong> o superior con proporción cuadrada o rectangular estándar.</li>
                                 </ul>
